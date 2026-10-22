@@ -3,13 +3,14 @@ import * as THREE from "three";
 import urlAltura from "../assets/terreno/altura.png";
 import urlCor from "../assets/terreno/cor.jpg";
 import urlBrilho from "../assets/terreno/brilho.png";
-import urlEmblema from "../assets/emblema.png";
+import urlEmblema from "../assets/emblema-titulo.png";
 
 // ─────────────────────────────────────────────
-// MUNDO 3D DA ABERTURA — o Terreno Suspenso do emblema
+// MUNDO 3D DA ABERTURA — a lua rachada de A Ordem
 // Uma ilha flutuante cujo relevo sai de src/assets/terreno/altura.png, gerado a
-// partir do emblema dos Scrips (scripts/gerar_terreno.py). O emblema brilha como
-// Metrito no meio de um lago, e as escolas da Ordem são luzes nas montanhas.
+// partir do emblema de A Ordem (scripts/gerar_terreno.py): o disco da lua partido
+// por uma fenda onde o Metrito brilha, com os fragmentos subindo num feixe de luz.
+// As escolas da Ordem são luzes no planalto.
 // Rolar move a câmera; arrastar gira a ilha; clicar numa luz abre a escola.
 // ─────────────────────────────────────────────
 
@@ -351,29 +352,39 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     // A ilha (montada quando as imagens do terreno chegam) e as ilhas menores ao longe
     const ilha = new THREE.Group();
     scene.add(ilha);
-    const matRocha = g(new THREE.MeshStandardMaterial({ color: "#24343c", roughness: 0.92, metalness: 0.05 }));
     const matBase = g(new THREE.MeshStandardMaterial({ color: "#141d22", roughness: 1, flatShading: true }));
 
-    const satelites = [
-      [-17, -2.5, -9, 1.6],
-      [15, 1.5, -14, 1.2],
-      [19, -4, 6, 2],
-      [-14, 2.5, 13, 1.1],
-      [3, -5, -22, 1.8],
-    ];
-    satelites.forEach(([x, y, z, s], i) => {
-      const grupo = new THREE.Group();
-      const topo = new THREE.Mesh(g(new THREE.CylinderGeometry(1, 0.9, 0.3, 24)), matRocha.clone());
-      topo.material.vertexColors = false;
-      topo.material.color.set("#24343c");
-      g(topo.material);
-      grupo.add(topo);
-      grupo.add(new THREE.Mesh(g(malhaBase(1, 2.4, i * 7.7)), matBase));
-      grupo.position.set(x, y, z);
-      grupo.scale.setScalar(s);
-      grupo.userData.fase = i;
-      scene.add(grupo);
-    });
+    // Fragmentos arrancados pela queda, subindo em coluna sobre a fenda
+    const geoFragmento = g(new THREE.IcosahedronGeometry(1, 1));
+    {
+      const p = geoFragmento.attributes.position;
+      const v = new THREE.Vector3();
+      for (let i = 0; i < p.count; i++) {
+        v.fromBufferAttribute(p, i);
+        v.multiplyScalar(0.75 + 0.5 * ruido(v.x * 2 + 5, v.y * 2 + v.z * 3));
+        p.setXYZ(i, v.x, v.y * 0.7, v.z);
+      }
+      geoFragmento.computeVertexNormals();
+    }
+    const matFragmento = g(new THREE.MeshStandardMaterial({ color: "#8f846f", roughness: 0.95, flatShading: true }));
+    for (let i = 0; i < 16; i++) {
+      const f = new THREE.Mesh(geoFragmento, matFragmento);
+      const subida = i / 15;
+      f.position.set((Math.random() - 0.4) * (0.8 + subida * 1.5), 2.2 + subida * 11 + Math.random() * 0.6, -0.4 + (Math.random() - 0.5) * 2.4);
+      f.scale.setScalar(0.12 + Math.random() * 0.35 * (1 - subida * 0.6));
+      f.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+      f.userData.fase = i;
+      f.userData.gira = (Math.random() - 0.5) * 0.004;
+      scene.add(f);
+    }
+
+    // O risco vertical da arte: um feixe de luz atravessando a ilha
+    const feixeQueda = new THREE.Mesh(
+      g(new THREE.CylinderGeometry(0.025, 0.025, 40, 8, 1, true)),
+      g(new THREE.MeshBasicMaterial({ color: OURO, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false })),
+    );
+    feixeQueda.position.set(0, 6, -0.38);
+    scene.add(feixeQueda);
 
     // Mar de nuvens embaixo
     const matNuvem = g(new THREE.SpriteMaterial({ map: brilho, color: "#4c6378", transparent: true, opacity: 0.16, depthWrite: false }));
@@ -414,16 +425,6 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       const borda = r.altura(RAIO_ILHA, 0);
       ilha.add(new THREE.Mesh(g(malhaBase(RAIO_ILHA * 1.01, 7, 3.1, borda + 0.1)), matBase));
 
-      if (r.imagens) {
-        const lago = new THREE.Mesh(
-          g(new THREE.CircleGeometry(RAIO_ILHA * 0.97, 128)),
-          g(new THREE.MeshBasicMaterial({ color: "#071116", transparent: true, opacity: 0.86 })),
-        );
-        lago.rotation.x = -Math.PI / 2;
-        lago.position.y = 0.02;
-        ilha.add(lago);
-      }
-
       const pos = [];
       const fases = [];
       const cores = [];
@@ -434,7 +435,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         const z = (Math.random() * 2 - 1) * RAIO_ILHA * 0.8;
         const b = r.brilho(x, z);
         if (b < 0.35) continue;
-        pos.push(x, Math.max(r.altura(x, z), 0) + 0.05, z);
+        pos.push(x, r.altura(x, z) + 0.05, z);
         fases.push(Math.random());
         cores.push(ouro.r * b, ouro.g * b, ouro.b * b);
         sobe.push(Math.random() < 0.35 ? 0.4 : 0);
@@ -446,9 +447,9 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       geo.setAttribute("sobe", new THREE.Float32BufferAttribute(sobe, 1));
       ilha.add(new THREE.Points(geo, matPoeira));
 
-      // A estrela do emblema fica um pouco acima do centro da imagem
-      const zEstrela = r.imagens ? -1.1 : 0;
-      nucleo.position.set(0, Math.max(r.altura(0, zEstrela), 0) + 0.3, zEstrela);
+      // A cratera no meio da rachadura fica um pouco acima do centro da arte
+      const zEstrela = r.imagens ? -0.38 : 0;
+      nucleo.position.set(0, r.altura(0, zEstrela) + 0.3, zEstrela);
       metrito.position.set(0, nucleo.position.y + 0.4, zEstrela);
       ilha.add(nucleo);
       montarEscolas(escolasPendentes);
@@ -472,7 +473,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         brasas.geometry.dispose();
         brasas = null;
       }
-      const raios = [7.3, 7.6];
+      const raios = [6.2, 6.6];
       const pBrasa = [];
       const fBrasa = [];
       const cBrasa = [];
@@ -590,6 +591,10 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         ilha.position.y = Math.sin(t * 0.4) * 0.12;
         scene.children.forEach((o) => {
           if (o.userData.fase != null) o.position.y += Math.sin(t * 0.3 + o.userData.fase) * 0.002;
+          if (o.userData.gira) {
+            o.rotation.x += o.userData.gira;
+            o.rotation.y += o.userData.gira * 0.7;
+          }
         });
       }
       matPoeira.uniforms.tempo.value = t;
@@ -751,8 +756,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         {!entrou && (
           <div style={st.portao}>
             <img src={urlEmblema} alt="Emblema dos Scrips" style={st.emblema} />
-            <p style={st.portaoTitulo}>A QUEDA DE UMA ORDEM</p>
-            <p style={st.portaoFrase}>Diferentes por natureza. Unidos pela mesma origem.</p>
+            <p style={st.portaoFrase}>“Esqueça tudo o que acredita saber. O que vou te revelar... muda tudo.”</p>
             <div style={st.portaoBotoes}>
               <button type="button" style={st.portaoBotao} onClick={() => entrar(true)}>
                 ENTRAR COM SOM
@@ -846,8 +850,7 @@ const st = {
     padding: "24px",
     textAlign: "center",
   },
-  emblema: { height: "min(320px, 42vh)", width: "auto", marginBottom: 4 },
-  portaoTitulo: { margin: 0, letterSpacing: "6px", fontSize: "0.9em", color: "#e8d08a" },
+  emblema: { height: "min(400px, 50vh)", width: "auto", marginBottom: 4 },
   portaoFrase: { margin: 0, maxWidth: 420, fontStyle: "italic", color: "#8a7a55", fontSize: "0.95em", lineHeight: 1.6 },
   portaoBotoes: { display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginTop: 18 },
   portaoBotao: {
