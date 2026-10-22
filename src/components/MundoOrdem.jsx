@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import urlRelevo from "../assets/terreno/relevo.png";
 import urlCor from "../assets/terreno/cor.jpg";
@@ -6,14 +6,24 @@ import urlNormal from "../assets/terreno/normal.jpg";
 import urlBrilho from "../assets/terreno/brilho.png";
 import infoTerreno from "../assets/terreno/info.json";
 import urlEmblema from "../assets/emblema-titulo.png";
+import { criarCeu } from "./mundo/ceu";
+import { criarArvores } from "./mundo/arvores";
+import { criarPortal } from "./mundo/portal";
+import urlTerra from "../assets/classes/terra.png";
+import urlFogo from "../assets/classes/fogo.png";
+import urlAgua from "../assets/classes/agua.png";
+import urlMente from "../assets/classes/mente.png";
+import urlTodos from "../assets/classes/todos.png";
 
 // ─────────────────────────────────────────────
 // MUNDO 3D DA ABERTURA — o lugar onde o meteoro caiu
 // O relevo é o real da Serra da Cangalha (TO), uma cratera de impacto de ~13 km,
 // gerado por scripts/gerar_terreno.py a partir de dados abertos de elevação e
-// fotos aéreas CC0. No centro do impacto o Metrito brilha em azul, com os
-// fragmentos subindo num feixe de luz. As escolas da Ordem são luzes na borda.
-// Rolar aproxima a câmera; arrastar gira; clicar numa luz abre a escola.
+// fotos aéreas CC0, com árvores do cerrado e céu estrelado. No centro do impacto
+// o Metrito brilha em azul, com os fragmentos subindo num feixe de luz. As
+// escolas da Ordem são luzes na borda da cratera; clicar numa delas leva a câmera
+// até lá e abre um portal com a imagem da classe.
+// Rolar aproxima a câmera; arrastar gira; Esc ou "Voltar ao mapa" fecha o portal.
 // ─────────────────────────────────────────────
 
 const NOITE = "#0a0f14";
@@ -22,6 +32,11 @@ const AZUL = "#5cc3ff";
 const LADO = infoTerreno.km; // 1 unidade = 1 km
 const EXAGERO = 5; // o relevo real é baixo para o tamanho da cratera
 const ALT_REF = infoTerreno.altitude_min + 120;
+// Imagem dentro do portal de cada escola. Provisório: os ícones de classe da arte
+// do emblema, até existir a arte dos personagens.
+const IMAGEM_CLASSE = { terra: urlTerra, fogo: urlFogo, agua: urlAgua, mente: urlMente, todos: urlTodos };
+const CLASSE_DA_ESCOLA = { primordiais: "terra", colossos: "fogo", mentalistas: "mente", eter: "todos" };
+
 const CENTRO = new THREE.Vector3((infoTerreno.centro[0] - 0.5) * LADO, 0, (infoTerreno.centro[1] - 0.5) * LADO);
 
 function hash(x, y) {
@@ -96,7 +111,7 @@ function texturaBrilho() {
   return t;
 }
 
-// Pontos de luz que cintilam (poeira de Metrito nos vales e brasas das escolas)
+// Pontos de luz que cintilam (poeira de Metrito subindo do impacto)
 const matCintilante = (tamanho) =>
   new THREE.ShaderMaterial({
     uniforms: { tempo: { value: 0 }, tamanho: { value: tamanho }, escala: { value: 1 } },
@@ -209,7 +224,23 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
   const [entrou, setEntrou] = useState(false);
   const [somLigado, setSomLigado] = useState(false);
   const [telaEstreita] = useState(() => window.innerWidth < 600);
+  const [selecionada, setSelecionada] = useState(null);
+  const fixoRef = useRef(null);
+
+  // A cena fica presa logo abaixo do menu fixo do topo, para nada ficar escondido atrás dele
+  useLayoutEffect(() => {
+    const ajustar = () => {
+      const menu = document.querySelector("nav")?.offsetHeight || 0;
+      if (!fixoRef.current) return;
+      fixoRef.current.style.top = `${menu}px`;
+      fixoRef.current.style.height = `calc(100vh - ${menu}px)`;
+    };
+    ajustar();
+    window.addEventListener("resize", ajustar);
+    return () => window.removeEventListener("resize", ajustar);
+  }, []);
   const aoEscolaRef = useRef(onEscola);
+  const aoSelecionarRef = useRef(setSelecionada);
   useEffect(() => {
     aoEscolaRef.current = onEscola;
   }, [onEscola]);
@@ -253,6 +284,9 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
 
     const mundo = new THREE.Group();
     scene.add(mundo);
+    const ceu = criarCeu({ horizonte: NOITE, direcaoLua: lua.position, texturaBrilho: brilho });
+    scene.add(ceu.grupo);
+    let arvores = null;
 
     // Fragmentos arrancados pela queda, subindo em coluna sobre o centro do impacto
     const geoFragmento = g(new THREE.IcosahedronGeometry(1, 1));
@@ -350,31 +384,41 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       feixeQueda.position.set(CENTRO.x, chao + 20, CENTRO.z);
       fragmentos.forEach((f) => f.position.copy(f.userData.base).add(CENTRO).setY(chao + f.userData.base.y));
       mundo.add(nucleo);
+      arvores = criarArvores({ relevo: r, area: LADO, centro: CENTRO, quantidade: estreito ? 1500 : 3500 });
+      mundo.add(arvores.grupo);
       montarEscolas(escolasPendentes);
     }
 
-    // Escolas: colunas de luz na borda da cratera
+    // Escolas: luzes na borda da cratera, com uma onda no chão
     const grupoEscolas = new THREE.Group();
     mundo.add(grupoEscolas);
     const alvosClique = [];
-    const matBrasa = g(matCintilante(30));
-    let brasas = null;
     let escolasPendentes = [];
+    const carregadorClasses = new THREE.TextureLoader();
+    const texturasClasse = {};
+    const texturaDaClasse = (classe) => {
+      if (!texturasClasse[classe]) {
+        texturasClasse[classe] = carregadorClasses.load(IMAGEM_CLASSE[classe]);
+        texturasClasse[classe].colorSpace = THREE.SRGBColorSpace;
+      }
+      return texturasClasse[classe];
+    };
+    const portal = criarPortal();
+    scene.add(portal.malha);
+
+    function limparEscolas() {
+      grupoEscolas.traverse((o) => {
+        o.geometry?.dispose();
+        o.material?.dispose?.();
+      });
+      grupoEscolas.clear();
+      alvosClique.length = 0;
+    }
 
     function montarEscolas(lista) {
       escolasPendentes = lista;
       if (!relevo) return;
-      grupoEscolas.clear();
-      alvosClique.length = 0;
-      if (brasas) {
-        mundo.remove(brasas);
-        brasas.geometry.dispose();
-        brasas = null;
-      }
-      const pBrasa = [];
-      const fBrasa = [];
-      const cBrasa = [];
-      const sBrasa = [];
+      limparEscolas();
       lista.forEach((e, i) => {
         const ang = (i / lista.length) * Math.PI * 2 + Math.PI / 4;
         const x = CENTRO.x + Math.cos(ang) * 5.6;
@@ -383,7 +427,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         const cor = new THREE.Color(e.cor || OURO);
 
         const feixe = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.04, 0.18, 2.6, 16, 1, true),
+          new THREE.CylinderGeometry(0.03, 0.12, 1.8, 16, 1, true),
           new THREE.ShaderMaterial({
             uniforms: { cor: { value: cor }, tempo: { value: 0 } },
             vertexShader: `varying float vY; void main(){ vY = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
@@ -395,40 +439,55 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
             side: THREE.DoubleSide,
           }),
         );
-        feixe.position.set(x, y + 1.3, z);
+        feixe.position.set(x, y + 0.9, z);
         grupoEscolas.add(feixe);
 
         const luz = new THREE.Sprite(new THREE.SpriteMaterial({ map: brilho, color: cor, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
-        luz.position.set(x, y + 0.12, z);
-        luz.scale.setScalar(1.2);
+        luz.position.set(x, y + 0.1, z);
+        luz.scale.setScalar(1);
         grupoEscolas.add(luz);
 
-        const alvo = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
-        alvo.position.set(x, y + 0.7, z);
-        alvo.userData = { escola: e, luz, feixe, base: new THREE.Vector3(x, y + 0.25, z) };
+        const onda = new THREE.Mesh(
+          new THREE.RingGeometry(0.9, 1, 48),
+          new THREE.MeshBasicMaterial({ color: cor, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
+        );
+        onda.rotation.x = -Math.PI / 2;
+        onda.position.set(x, y + 0.03, z);
+        grupoEscolas.add(onda);
+
+        const alvo = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
+        alvo.position.set(x, y + 0.5, z);
+        alvo.userData = { escola: e, luz, feixe, onda, fase: i * 0.7, base: new THREE.Vector3(x, y + 0.25, z), chao: new THREE.Vector3(x, y, z) };
         grupoEscolas.add(alvo);
         alvosClique.push(alvo);
-
-        for (let k = 0; k < 40; k++) {
-          pBrasa.push(x + (Math.random() - 0.5) * 0.4, y + Math.random() * 0.15, z + (Math.random() - 0.5) * 0.4);
-          fBrasa.push(Math.random());
-          cBrasa.push(cor.r, cor.g, cor.b);
-          sBrasa.push(0.8 + Math.random() * 0.6);
-        }
       });
-      if (pBrasa.length) {
-        const geo = new THREE.BufferGeometry();
-        geo.setAttribute("position", new THREE.Float32BufferAttribute(pBrasa, 3));
-        geo.setAttribute("fase", new THREE.Float32BufferAttribute(fBrasa, 1));
-        geo.setAttribute("cor", new THREE.Float32BufferAttribute(cBrasa, 3));
-        geo.setAttribute("sobe", new THREE.Float32BufferAttribute(sBrasa, 1));
-        brasas = new THREE.Points(geo, matBrasa);
-        mundo.add(brasas);
-      }
+    }
+
+    // Foco numa escola: a câmera vai até a luz e o portal abre em cima dela
+    let escolaAberta = null;
+    let mistura = 0;
+    const camVisao = new THREE.Vector3();
+    const alvoVisao = new THREE.Vector3();
+    const camFoco = new THREE.Vector3();
+    const alvoFoco = new THREE.Vector3();
+    const direcao = new THREE.Vector3();
+
+    function abrirEscola(alvo) {
+      const e = alvo.userData.escola;
+      escolaAberta = alvo;
+      const classe = CLASSE_DA_ESCOLA[e.id] || "todos";
+      portal.abrir(alvo.userData.chao.clone().add(new THREE.Vector3(0, 2.7, 0)), texturaDaClasse(classe), e.cor || OURO, 3.6);
+      aoSelecionarRef.current?.(e);
+    }
+    function fecharEscola() {
+      escolaAberta = null;
+      portal.fechar();
+      aoSelecionarRef.current?.(null);
     }
 
     // Câmera: gira em volta do centro do impacto; o scroll desce do alto até perto do chão
     const relogio = new THREE.Clock();
+    let tAnterior = 0;
     let progresso = 0;
     let progressoSuave = 0;
     let giro = 0;
@@ -448,26 +507,39 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       progresso = total > 0 ? Math.min(1, Math.max(0, -r.top / total)) : 0;
     }
 
-    function posicionarCamera(t) {
+    function posicionarCamera(t, dt) {
       const p = progressoSuave;
       const dist = THREE.MathUtils.lerp(17, 8.5, p);
-      const polar = THREE.MathUtils.lerp(0.78, 1.3, p);
+      const polar = THREE.MathUtils.lerp(0.78, 1.42, p);
       const azim = 0.15 + p * 1.0 + giro + (reduz ? 0 : t * 0.015);
-      camera.position.set(
+      camVisao.set(
         CENTRO.x + Math.sin(polar) * Math.sin(azim) * dist,
         Math.cos(polar) * dist + 0.6,
         CENTRO.z + Math.sin(polar) * Math.cos(azim) * dist,
       );
-      alvoCamera.set(CENTRO.x, THREE.MathUtils.lerp(-0.6, 0.4, p), CENTRO.z);
+      alvoVisao.set(CENTRO.x, THREE.MathUtils.lerp(-0.6, 2.2, p), CENTRO.z);
+
+      mistura += ((escolaAberta ? 1 : 0) - mistura) * (reduz ? 1 : 1 - Math.exp(-dt * 1.8));
+      if (escolaAberta) {
+        const chao = escolaAberta.userData.chao;
+        direcao.set(camVisao.x - chao.x, 0, camVisao.z - chao.z).normalize();
+        camFoco.copy(chao).addScaledVector(direcao, 7.5);
+        camFoco.y = chao.y + 2.4;
+        alvoFoco.copy(chao).setY(chao.y + 2.3);
+      }
+      const k = mistura * mistura * (3 - 2 * mistura);
+      camera.position.lerpVectors(camVisao, camFoco, k);
+      alvoCamera.lerpVectors(alvoVisao, alvoFoco, k);
       camera.lookAt(alvoCamera);
-      neblina.near = dist * 0.75;
-      neblina.far = dist + 15;
+      const d = THREE.MathUtils.lerp(dist, 7.5, k);
+      neblina.near = d * 0.75;
+      neblina.far = d + 15;
     }
 
     function atualizarRotulo() {
       const el = rotuloRef.current;
       if (!el) return;
-      if (!foco) {
+      if (!foco || escolaAberta) {
         el.style.opacity = "0";
         return;
       }
@@ -485,9 +557,11 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       quadro = 0;
       if (!visivel || document.hidden) return;
       const t = relogio.getElapsedTime();
+      const dt = Math.min(t - tAnterior, 0.1);
+      tAnterior = t;
       progressoSuave += (progresso - progressoSuave) * (reduz ? 1 : 0.06);
       giro += (giroAlvo - giro) * 0.08;
-      posicionarCamera(t);
+      posicionarCamera(t, dt);
 
       if (!reduz) {
         fragmentos.forEach((f) => {
@@ -497,14 +571,10 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         });
       }
       matPoeira.uniforms.tempo.value = t;
-      matBrasa.uniforms.tempo.value = t;
+      ceu.atualizar(t, renderer.getPixelRatio());
       nucleo.material.opacity = 0.75 + 0.25 * Math.sin(t * 1.3);
       metrito.intensity = 13 + 4 * Math.sin(t * 1.3);
       if (matTerreno) matTerreno.emissiveIntensity = 0.9 + 0.3 * Math.sin(t * 1.3);
-      grupoEscolas.children.forEach((o) => {
-        if (o.material?.uniforms?.tempo) o.material.uniforms.tempo.value = t + o.position.x;
-      });
-
       ray.setFromCamera(ponteiro, camera);
       const hit = ray.intersectObjects(alvosClique)[0]?.object || null;
       if (hit !== foco) {
@@ -512,10 +582,15 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         palco.style.cursor = hit ? "pointer" : arrastando ? "grabbing" : "grab";
       }
       alvosClique.forEach((a) => {
-        const alvoEscala = a === foco ? 1.9 : 1.2;
-        const s = a.userData.luz.scale.x;
-        a.userData.luz.scale.setScalar(s + (alvoEscala - s) * 0.15);
+        const { luz, feixe, onda, fase } = a.userData;
+        const alvoEscala = a === foco || a === escolaAberta ? 1.7 : 1;
+        luz.scale.setScalar(luz.scale.x + (alvoEscala - luz.scale.x) * 0.15);
+        feixe.material.uniforms.tempo.value = t + fase;
+        const ciclo = ((reduz ? 0.5 : t * 0.35) + fase) % 1;
+        onda.scale.setScalar(0.2 + ciclo * 0.9);
+        onda.material.opacity = (1 - ciclo) * 0.6;
       });
+      portal.atualizar(t, dt, camera);
       atualizarRotulo();
 
       renderer.render(scene, camera);
@@ -536,13 +611,12 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       camera.updateProjectionMatrix();
       const escala = h * renderer.getPixelRatio() * 0.5;
       matPoeira.uniforms.escala.value = escala / 400;
-      matBrasa.uniforms.escala.value = escala / 400;
     }
 
     const aoMover = (ev) => {
       const r = palco.getBoundingClientRect();
       ponteiro.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
-      if (arrastando) {
+      if (arrastando && !escolaAberta) {
         giroAlvo = arrastando.giro - ((ev.clientX - arrastando.x) / r.width) * 3;
         if (Math.abs(ev.clientX - arrastando.x) > 4) arrastando.moveu = true;
       }
@@ -551,12 +625,22 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       arrastando = { x: ev.clientX, giro: giroAlvo, moveu: false };
       palco.style.cursor = foco ? "pointer" : "grabbing";
     };
-    const aoSoltar = () => {
-      if (arrastando && !arrastando.moveu && foco) aoEscolaRef.current?.(foco.userData.escola.id);
+    const aoSoltar = (ev) => {
+      if (arrastando && !arrastando.moveu) {
+        // raio na hora do clique, sem depender do último quadro desenhado
+        aoMover(ev);
+        ray.setFromCamera(ponteiro, camera);
+        const clicado = ray.intersectObjects(alvosClique)[0]?.object || null;
+        if (clicado && clicado !== escolaAberta) abrirEscola(clicado);
+        else if (!clicado && escolaAberta) fecharEscola();
+      }
       arrastando = null;
       palco.style.cursor = foco ? "pointer" : "grab";
     };
     const aoSair = () => ponteiro.set(9, 9);
+    const aoTecla = (ev) => {
+      if (ev.key === "Escape" && escolaAberta) fecharEscola();
+    };
 
     const ro = new ResizeObserver(enquadrar);
     ro.observe(palco);
@@ -571,8 +655,9 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     window.addEventListener("pointerup", aoSoltar);
     palco.addEventListener("pointerleave", aoSair);
     document.addEventListener("visibilitychange", tocar);
+    window.addEventListener("keydown", aoTecla);
 
-    mundoRef.current = { montarEscolas };
+    mundoRef.current = { montarEscolas, fecharEscola };
     let fechado = false;
     carregarRelevo()
       .catch(() => ({ altura: () => 0, brilho: () => 0 }))
@@ -588,6 +673,9 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     return () => {
       fechado = true;
       cancelAnimationFrame(quadro);
+      limparEscolas();
+      ceu.descartar();
+      arvores?.descartar();
       ro.disconnect();
       io.disconnect();
       window.removeEventListener("scroll", lerScroll);
@@ -596,6 +684,9 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       window.removeEventListener("pointerup", aoSoltar);
       palco.removeEventListener("pointerleave", aoSair);
       document.removeEventListener("visibilitychange", tocar);
+      window.removeEventListener("keydown", aoTecla);
+      portal.descartar();
+      Object.values(texturasClasse).forEach((t) => t.dispose());
       scene.traverse((o) => {
         if (!lixo.includes(o.geometry)) o.geometry?.dispose();
         if (o.material && !lixo.includes(o.material)) o.material.dispose?.();
@@ -631,19 +722,33 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
 
   return (
     <section ref={secaoRef} style={st.secao}>
-      <div style={st.fixo}>
+      <div ref={fixoRef} style={st.fixo}>
         <div ref={palcoRef} style={st.palco} />
         <div style={st.vinheta} />
         <div ref={rotuloRef} style={st.rotulo}>
           <strong style={st.rotuloNome} />
           <span style={st.rotuloSub} />
         </div>
-        <div style={{ ...st.conteudo, opacity: entrou ? 1 : 0 }}>{children}</div>
-        <p style={{ ...st.dica, bottom: telaEstreita ? 78 : 28, opacity: entrou ? 1 : 0 }}>
+        <div style={{ ...st.conteudo, opacity: entrou && !selecionada ? 1 : 0 }}>{children}</div>
+        <p style={{ ...st.dica, bottom: telaEstreita ? 78 : 28, opacity: entrou && !selecionada ? 1 : 0 }}>
           Role ou arraste para explorar.
           <br />
           Clique nas luzes para conhecer as escolas.
         </p>
+        {selecionada && (
+          <>
+            <button type="button" style={st.voltar} onClick={() => mundoRef.current?.fecharEscola()}>
+              ← VOLTAR AO MAPA
+            </button>
+            <div style={st.painel}>
+              <p style={{ ...st.painelSub, color: selecionada.cor || OURO }}>{selecionada.subtitulo}</p>
+              <h2 style={st.painelNome}>{selecionada.nome}</h2>
+              <button type="button" style={st.painelBotao} onClick={() => onEscola?.(selecionada.id)}>
+                CONHECER A ESCOLA
+              </button>
+            </div>
+          </>
+        )}
         <button
           type="button"
           onClick={alternarSom}
@@ -672,6 +777,53 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
 }
 
 const st = {
+  voltar: {
+    position: "absolute",
+    top: 24,
+    left: "max(20px, env(safe-area-inset-left, 0px))",
+    background: "rgba(6,9,12,0.5)",
+    border: "1px solid rgba(196,160,80,0.35)",
+    borderRadius: 3,
+    color: "#d4b87a",
+    letterSpacing: "2.5px",
+    fontSize: "0.66em",
+    padding: "10px 16px",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  },
+  painel: {
+    position: "absolute",
+    left: "50%",
+    bottom: "clamp(28px, 7vh, 64px)",
+    transform: "translateX(-50%)",
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 10,
+    width: "min(90vw, 520px)",
+  },
+  painelSub: { margin: 0, fontSize: "0.72em", letterSpacing: "4px", textTransform: "uppercase" },
+  painelNome: {
+    margin: 0,
+    fontFamily: "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+    fontSize: "clamp(1.8em, 5vw, 2.8em)",
+    fontWeight: 400,
+    color: "#efe6cf",
+    textShadow: "0 2px 24px rgba(0,0,0,0.8)",
+  },
+  painelBotao: {
+    marginTop: 12,
+    padding: "12px 26px",
+    background: "rgba(6,9,12,0.55)",
+    border: "1px solid rgba(232,208,138,0.5)",
+    borderRadius: 3,
+    color: "#e8d08a",
+    letterSpacing: "3px",
+    fontSize: "0.7em",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  },
   secao: { position: "relative", height: "260vh", zIndex: 2 },
   fixo: { position: "sticky", top: 0, height: "100vh", overflow: "hidden" },
   palco: { position: "absolute", inset: 0, touchAction: "pan-y" },
