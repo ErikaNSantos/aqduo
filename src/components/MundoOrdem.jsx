@@ -9,6 +9,7 @@ import urlEmblema from "../assets/emblema-titulo.png";
 import { criarCeu } from "./mundo/ceu";
 import { criarArvores } from "./mundo/arvores";
 import { criarPortal } from "./mundo/portal";
+import { criarBigBang, criarMeteoro, criarTochas, criarEmblemaCeu, suave } from "./mundo/historia";
 import urlTerra from "../assets/classes/terra.png";
 import urlFogo from "../assets/classes/fogo.png";
 import urlAgua from "../assets/classes/agua.png";
@@ -16,14 +17,11 @@ import urlMente from "../assets/classes/mente.png";
 import urlTodos from "../assets/classes/todos.png";
 
 // ─────────────────────────────────────────────
-// MUNDO 3D DA ABERTURA — o lugar onde o meteoro caiu
-// O relevo é o real da Serra da Cangalha (TO), uma cratera de impacto de ~13 km,
-// gerado por scripts/gerar_terreno.py a partir de dados abertos de elevação e
-// fotos aéreas CC0, com árvores do cerrado e céu estrelado. No centro do impacto
-// o Metrito brilha em azul, com os fragmentos subindo num feixe de luz. As
-// escolas da Ordem são luzes na borda da cratera; clicar numa delas leva a câmera
-// até lá e abre um portal com a imagem da classe.
-// Rolar aproxima a câmera; arrastar gira; Esc ou "Voltar ao mapa" fecha o portal.
+// ABERTURA EM 3D — a história contada pelo scroll
+// Rolar a página avança a história: o nada, o Big Bang, o meteoro cruzando o
+// espaço, o impacto na Serra da Cangalha (relevo real, scripts/gerar_terreno.py),
+// o Metrito azul se espalhando, a perseguição, A Ordem, o emblema e, por fim, as
+// escolas, cada uma com seu portal. No fim dá para girar e clicar nas escolas.
 // ─────────────────────────────────────────────
 
 const NOITE = "#0a0f14";
@@ -203,6 +201,34 @@ function criarSom() {
   sinoTimer = setTimeout(sino, 3000);
 
   return {
+    /** Estrondo grave: o Big Bang e o impacto do meteoro. */
+    estrondo(forca = 1) {
+      if (ctx.state === "suspended") return;
+      const agora = ctx.currentTime;
+      const o = ctx.createOscillator();
+      o.type = "sine";
+      o.frequency.setValueAtTime(70, agora);
+      o.frequency.exponentialRampToValueAtTime(24, agora + 2.5);
+      const go = ctx.createGain();
+      go.gain.setValueAtTime(0.0001, agora);
+      go.gain.exponentialRampToValueAtTime(0.9 * forca, agora + 0.05);
+      go.gain.exponentialRampToValueAtTime(0.0001, agora + 3);
+      o.connect(go).connect(mestre);
+      o.start(agora);
+      o.stop(agora + 3.1);
+      const r = ctx.createBufferSource();
+      r.buffer = buf;
+      const f = ctx.createBiquadFilter();
+      f.type = "lowpass";
+      f.frequency.setValueAtTime(1800, agora);
+      f.frequency.exponentialRampToValueAtTime(120, agora + 2);
+      const gr = ctx.createGain();
+      gr.gain.setValueAtTime(0.5 * forca, agora);
+      gr.gain.exponentialRampToValueAtTime(0.0001, agora + 2.2);
+      r.connect(f).connect(gr).connect(mestre);
+      r.start(agora);
+      r.stop(agora + 2.3);
+    },
     ligar(on) {
       if (ctx.state === "suspended") ctx.resume();
       mestre.gain.cancelScheduledValues(ctx.currentTime);
@@ -215,17 +241,61 @@ function criarSom() {
   };
 }
 
-export default function MundoOrdem({ escolas = [], onEscola, children }) {
+// Capítulos da história, na ordem do scroll. `s` vai de 0 (o nada) a FINAL.
+// 0 o nada · 1 Big Bang · 2 o meteoro · 3 o impacto · 4 a energia no solo (os Scrips)
+// 5 a perseguição · 6 A Ordem · 7 o emblema · 8 a 11 as escolas · 12 o emblema e a entrada
+const CAP_ESCOLAS = 8;
+const FINAL = 12;
+
+const ESPACO = CENTRO.clone().add(new THREE.Vector3(0, 70, 0)); // onde o universo nasce
+const ORIGEM_METEORO = CENTRO.clone().add(new THREE.Vector3(-10, 20, -14));
+
+/** Posição de câmera em órbita do centro do impacto. */
+function orbita(dist, polar, azim, alturaAlvo = 0) {
+  return {
+    pos: new THREE.Vector3(
+      CENTRO.x + Math.sin(polar) * Math.sin(azim) * dist,
+      Math.cos(polar) * dist + 0.6,
+      CENTRO.z + Math.sin(polar) * Math.cos(azim) * dist,
+    ),
+    alvo: new THREE.Vector3(CENTRO.x, alturaAlvo, CENTRO.z),
+  };
+}
+
+const POSES_FIXAS = {
+  0: { pos: ESPACO.clone().add(new THREE.Vector3(0, 0, 30)), alvo: ESPACO.clone() },
+  1: { pos: ESPACO.clone().add(new THREE.Vector3(0, 2, 24)), alvo: ESPACO.clone() },
+  2: { pos: CENTRO.clone().add(new THREE.Vector3(9, 26, 26)), alvo: CENTRO.clone().add(new THREE.Vector3(0, 9, 0)) },
+  3: orbita(17, 0.78, 0.15, -0.6),
+  4: orbita(12, 1.02, 0.9, 0),
+  5: orbita(9, 1.3, 1.8, 0.6),
+  6: orbita(18, 0.62, 2.5, -0.4),
+  7: { pos: orbita(17, 1.42, 3.0).pos, alvo: CENTRO.clone().add(new THREE.Vector3(0, 7.2, 0)) },
+};
+POSES_FIXAS[FINAL] = { pos: orbita(19, 1.42, 3.4).pos, alvo: CENTRO.clone().add(new THREE.Vector3(0, 7.2, 0)) };
+
+/** Opacidade do texto do capítulo c na posição s da história. */
+function opacidadeCapitulo(c, s) {
+  const entra = c === 0 ? 1 : Math.min(1, Math.max(0, (s - (c - 0.3)) / 0.25));
+  const sai = c === FINAL ? 0 : Math.min(1, Math.max(0, (s - (c + 0.5)) / 0.15));
+  return entra * (1 - sai);
+}
+
+export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEntrar }) {
   const secaoRef = useRef(null);
   const palcoRef = useRef(null);
   const rotuloRef = useRef(null);
   const mundoRef = useRef(null);
   const somRef = useRef(null);
+  const dicaRef = useRef(null);
   const [entrou, setEntrou] = useState(false);
   const [somLigado, setSomLigado] = useState(false);
-  const [telaEstreita] = useState(() => window.innerWidth < 600);
   const [selecionada, setSelecionada] = useState(null);
   const fixoRef = useRef(null);
+  const escolasRef = useRef(escolas);
+  useEffect(() => {
+    escolasRef.current = escolas;
+  }, [escolas]);
 
   // A cena fica presa logo abaixo do menu fixo do topo, para nada ficar escondido atrás dele
   useLayoutEffect(() => {
@@ -239,11 +309,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     window.addEventListener("resize", ajustar);
     return () => window.removeEventListener("resize", ajustar);
   }, []);
-  const aoEscolaRef = useRef(onEscola);
   const aoSelecionarRef = useRef(setSelecionada);
-  useEffect(() => {
-    aoEscolaRef.current = onEscola;
-  }, [onEscola]);
 
   useEffect(() => {
     const palco = palcoRef.current;
@@ -266,10 +332,10 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     palco.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(NOITE);
+    scene.background = new THREE.Color("#000000");
     const neblina = new THREE.Fog(NOITE, 14, 34);
     scene.fog = neblina;
-    const camera = new THREE.PerspectiveCamera(estreito ? 52 : 42, 1, 0.1, 300);
+    const camera = new THREE.PerspectiveCamera(estreito ? 52 : 42, 1, 0.1, 400);
     const lixo = [];
     const g = (o) => (lixo.push(o), o);
     const brilho = g(texturaBrilho());
@@ -279,7 +345,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     const lua = new THREE.DirectionalLight("#b4c8e0", 2.6);
     lua.position.set(-12, 7, -8);
     scene.add(lua);
-    const metrito = new THREE.PointLight(AZUL, 14, 9, 1.6);
+    const metrito = new THREE.PointLight(AZUL, 0, 9, 1.6);
     scene.add(metrito);
 
     const mundo = new THREE.Group();
@@ -287,6 +353,16 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     const ceu = criarCeu({ horizonte: NOITE, direcaoLua: lua.position, texturaBrilho: brilho });
     scene.add(ceu.grupo);
     let arvores = null;
+    let tochas = null;
+
+    const bigBang = criarBigBang({ centro: ESPACO, texturaBrilho: brilho });
+    scene.add(bigBang.grupo);
+    const meteoro = criarMeteoro({ texturaBrilho: brilho, cor: AZUL });
+    scene.add(meteoro.grupo);
+    const texturaEmblema = g(new THREE.TextureLoader().load(urlEmblema, () => emblema.ajustarProporcao()));
+    texturaEmblema.colorSpace = THREE.SRGBColorSpace;
+    const emblema = criarEmblemaCeu({ textura: texturaEmblema, posicao: CENTRO.clone().add(new THREE.Vector3(0, 7.6, 0)), altura: estreito ? 6.5 : 8 });
+    scene.add(emblema.malha);
 
     // Fragmentos arrancados pela queda, subindo em coluna sobre o centro do impacto
     const geoFragmento = g(new THREE.IcosahedronGeometry(1, 1));
@@ -310,22 +386,25 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       f.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
       f.userData.fase = i;
       f.userData.gira = (Math.random() - 0.5) * 0.004;
+      f.visible = false;
       fragmentos.push(f);
       mundo.add(f);
     }
 
     // O feixe de luz que atravessa o centro do impacto
-    const feixeQueda = new THREE.Mesh(
-      g(new THREE.CylinderGeometry(0.02, 0.02, 40, 8, 1, true)),
-      g(new THREE.MeshBasicMaterial({ color: AZUL, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false })),
-    );
+    const matFeixeQueda = g(new THREE.MeshBasicMaterial({ color: AZUL, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const feixeQueda = new THREE.Mesh(g(new THREE.CylinderGeometry(0.02, 0.02, 40, 8, 1, true)), matFeixeQueda);
     mundo.add(feixeQueda);
 
     const matPoeira = g(matCintilante(24));
-    const nucleo = new THREE.Sprite(g(new THREE.SpriteMaterial({ map: brilho, color: AZUL, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })));
+    const nucleo = new THREE.Sprite(g(new THREE.SpriteMaterial({ map: brilho, color: AZUL, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })));
     nucleo.scale.setScalar(2.6);
+    let poeira = null;
     let matTerreno = null;
     let relevo = null;
+    let chaoCentro = 0;
+    // O brilho do Metrito se espalha do centro para fora (raio em km)
+    const uMetrito = { raio: { value: 0 }, centro: { value: new THREE.Vector2(CENTRO.x, CENTRO.z) } };
 
     function montarTerreno(r) {
       relevo = r;
@@ -342,11 +421,24 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
           normalScale: new THREE.Vector2(1.4, 1.4),
           emissive: AZUL,
           emissiveMap: luzMetrito,
-          emissiveIntensity: 1,
+          emissiveIntensity: 0,
           roughness: 0.95,
           metalness: 0,
         }),
       );
+      matTerreno.onBeforeCompile = (shader) => {
+        shader.uniforms.raioMetrito = uMetrito.raio;
+        shader.uniforms.centroMetrito = uMetrito.centro;
+        shader.vertexShader = shader.vertexShader
+          .replace("#include <common>", "#include <common>\nvarying vec3 vPosMundo;")
+          .replace("#include <project_vertex>", "#include <project_vertex>\nvPosMundo = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+        shader.fragmentShader = shader.fragmentShader
+          .replace("#include <common>", "#include <common>\nvarying vec3 vPosMundo;\nuniform float raioMetrito;\nuniform vec2 centroMetrito;")
+          .replace(
+            "#include <emissivemap_fragment>",
+            "#include <emissivemap_fragment>\ntotalEmissiveRadiance *= smoothstep(raioMetrito, raioMetrito - 1.2, distance(vPosMundo.xz, centroMetrito));",
+          );
+      };
       const divisoes = estreito ? 170 : 256;
       const geo = g(new THREE.PlaneGeometry(LADO, LADO, divisoes, divisoes));
       geo.rotateX(-Math.PI / 2);
@@ -376,16 +468,18 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       geoPoeira.setAttribute("fase", new THREE.Float32BufferAttribute(fases, 1));
       geoPoeira.setAttribute("cor", new THREE.Float32BufferAttribute(cores, 3));
       geoPoeira.setAttribute("sobe", new THREE.Float32BufferAttribute(sobe, 1));
-      mundo.add(new THREE.Points(geoPoeira, matPoeira));
+      poeira = new THREE.Points(geoPoeira, matPoeira);
+      mundo.add(poeira);
 
-      const chao = r.altura(CENTRO.x, CENTRO.z);
-      nucleo.position.set(CENTRO.x, chao + 0.35, CENTRO.z);
-      metrito.position.set(CENTRO.x, chao + 0.9, CENTRO.z);
-      feixeQueda.position.set(CENTRO.x, chao + 20, CENTRO.z);
-      fragmentos.forEach((f) => f.position.copy(f.userData.base).add(CENTRO).setY(chao + f.userData.base.y));
+      chaoCentro = r.altura(CENTRO.x, CENTRO.z);
+      nucleo.position.set(CENTRO.x, chaoCentro + 0.35, CENTRO.z);
+      metrito.position.set(CENTRO.x, chaoCentro + 0.9, CENTRO.z);
+      feixeQueda.position.set(CENTRO.x, chaoCentro + 20, CENTRO.z);
       mundo.add(nucleo);
       arvores = criarArvores({ relevo: r, area: LADO, centro: CENTRO, quantidade: estreito ? 1500 : 3500 });
       mundo.add(arvores.grupo);
+      tochas = criarTochas({ texturaBrilho: brilho, relevo: r, centro: CENTRO });
+      mundo.add(tochas.grupo);
       montarEscolas(escolasPendentes);
     }
 
@@ -429,10 +523,10 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         const feixe = new THREE.Mesh(
           new THREE.CylinderGeometry(0.03, 0.12, 1.8, 16, 1, true),
           new THREE.ShaderMaterial({
-            uniforms: { cor: { value: cor }, tempo: { value: 0 } },
+            uniforms: { cor: { value: cor }, tempo: { value: 0 }, forca: { value: 1 } },
             vertexShader: `varying float vY; void main(){ vY = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
-            fragmentShader: `uniform vec3 cor; uniform float tempo; varying float vY;
-              void main(){ float a = pow(1.0 - vY, 1.6) * (0.75 + 0.25 * sin(tempo * 2.0)); gl_FragColor = vec4(cor * 1.6, 1.0) * a; }`,
+            fragmentShader: `uniform vec3 cor; uniform float tempo; uniform float forca; varying float vY;
+              void main(){ float a = pow(1.0 - vY, 1.6) * (0.75 + 0.25 * sin(tempo * 2.0)) * forca; gl_FragColor = vec4(cor * 1.6, 1.0) * a; }`,
             transparent: true,
             blending: THREE.AdditiveBlending,
             depthWrite: false,
@@ -457,27 +551,29 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
 
         const alvo = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
         alvo.position.set(x, y + 0.5, z);
-        alvo.userData = { escola: e, luz, feixe, onda, fase: i * 0.7, base: new THREE.Vector3(x, y + 0.25, z), chao: new THREE.Vector3(x, y, z) };
+        alvo.userData = { escola: e, indice: i, luz, feixe, onda, fase: i * 0.7, base: new THREE.Vector3(x, y + 0.25, z), chao: new THREE.Vector3(x, y, z) };
         grupoEscolas.add(alvo);
         alvosClique.push(alvo);
       });
     }
 
-    // Foco numa escola: a câmera vai até a luz e o portal abre em cima dela
-    let escolaAberta = null;
+    // Portal: aberto pelo roteiro (capítulos das escolas) ou por clique no fim da história
+    let escolaAberta = null; // aberta por clique
+    let escolaRoteiro = null; // aberta pelo roteiro
     let mistura = 0;
-    const camVisao = new THREE.Vector3();
-    const alvoVisao = new THREE.Vector3();
     const camFoco = new THREE.Vector3();
     const alvoFoco = new THREE.Vector3();
     const direcao = new THREE.Vector3();
 
-    function abrirEscola(alvo) {
+    function abrirPortal(alvo) {
       const e = alvo.userData.escola;
-      escolaAberta = alvo;
       const classe = CLASSE_DA_ESCOLA[e.id] || "todos";
       portal.abrir(alvo.userData.chao.clone().add(new THREE.Vector3(0, 2.7, 0)), texturaDaClasse(classe), e.cor || OURO, 3.6);
-      aoSelecionarRef.current?.(e);
+    }
+    function abrirEscola(alvo) {
+      escolaAberta = alvo;
+      abrirPortal(alvo);
+      aoSelecionarRef.current?.(alvo.userData.escola);
     }
     function fecharEscola() {
       escolaAberta = null;
@@ -485,11 +581,24 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       aoSelecionarRef.current?.(null);
     }
 
-    // Câmera: gira em volta do centro do impacto; o scroll desce do alto até perto do chão
+    /** Pose da câmera de foco numa escola: de fora da cratera, olhando o portal com o impacto ao fundo. */
+    function poseEscola(alvo) {
+      const chao = alvo.userData.chao;
+      direcao.set(chao.x - CENTRO.x, 0, chao.z - CENTRO.z).normalize();
+      return { pos: chao.clone().addScaledVector(direcao, 7.5).setY(chao.y + 2.4), alvo: chao.clone().setY(chao.y + 2.3) };
+    }
+    function pose(c) {
+      if (POSES_FIXAS[c]) return POSES_FIXAS[c];
+      const alvo = alvosClique[c - CAP_ESCOLAS];
+      return alvo ? poseEscola(alvo) : POSES_FIXAS[6];
+    }
+
+    // Câmera e roteiro
     const relogio = new THREE.Clock();
     let tAnterior = 0;
     let progresso = 0;
-    let progressoSuave = 0;
+    let s = 0; // posição suavizada na história
+    let sAnterior = 0;
     let giro = 0;
     let giroAlvo = 0;
     let arrastando = null;
@@ -499,7 +608,9 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     const ray = new THREE.Raycaster();
     const ponteiro = new THREE.Vector2(9, 9);
     const tela = new THREE.Vector3();
+    const posCam = new THREE.Vector3();
     const alvoCamera = new THREE.Vector3();
+    const eixoY = new THREE.Vector3(0, 1, 0);
 
     function lerScroll() {
       const r = secao.getBoundingClientRect();
@@ -507,39 +618,105 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       progresso = total > 0 ? Math.min(1, Math.max(0, -r.top / total)) : 0;
     }
 
-    function posicionarCamera(t, dt) {
-      const p = progressoSuave;
-      const dist = THREE.MathUtils.lerp(17, 8.5, p);
-      const polar = THREE.MathUtils.lerp(0.78, 1.42, p);
-      const azim = 0.15 + p * 1.0 + giro + (reduz ? 0 : t * 0.015);
-      camVisao.set(
-        CENTRO.x + Math.sin(polar) * Math.sin(azim) * dist,
-        Math.cos(polar) * dist + 0.6,
-        CENTRO.z + Math.sin(polar) * Math.cos(azim) * dist,
-      );
-      alvoVisao.set(CENTRO.x, THREE.MathUtils.lerp(-0.6, 2.2, p), CENTRO.z);
+    function posicionarCamera(dt) {
+      const c = Math.min(FINAL - 1, Math.floor(s));
+      const k = suave(0.45, 1, s - c);
+      const a = pose(c);
+      const b = pose(c + 1);
+      posCam.lerpVectors(a.pos, b.pos, k);
+      alvoCamera.lerpVectors(a.alvo, b.alvo, k);
 
+      // no fim da história dá para girar arrastando e abrir as escolas com clique
+      const livre = suave(FINAL - 0.4, FINAL, s);
+      const ang = giro * livre;
+      posCam.sub(CENTRO).applyAxisAngle(eixoY, ang).add(CENTRO);
       mistura += ((escolaAberta ? 1 : 0) - mistura) * (reduz ? 1 : 1 - Math.exp(-dt * 1.8));
       if (escolaAberta) {
-        const chao = escolaAberta.userData.chao;
-        direcao.set(camVisao.x - chao.x, 0, camVisao.z - chao.z).normalize();
-        camFoco.copy(chao).addScaledVector(direcao, 7.5);
-        camFoco.y = chao.y + 2.4;
-        alvoFoco.copy(chao).setY(chao.y + 2.3);
+        const p = poseEscola(escolaAberta);
+        camFoco.copy(p.pos);
+        alvoFoco.copy(p.alvo);
       }
-      const k = mistura * mistura * (3 - 2 * mistura);
-      camera.position.lerpVectors(camVisao, camFoco, k);
-      alvoCamera.lerpVectors(alvoVisao, alvoFoco, k);
+      const m = mistura * mistura * (3 - 2 * mistura);
+      camera.position.lerpVectors(posCam, camFoco, m);
+      alvoCamera.lerp(alvoFoco, m);
       camera.lookAt(alvoCamera);
-      const d = THREE.MathUtils.lerp(dist, 7.5, k);
-      neblina.near = d * 0.75;
-      neblina.far = d + 15;
+
+      // o terreno só aparece quando o meteoro se aproxima; antes disso é o espaço
+      const terra = suave(2.2, 2.9, s);
+      const d = camera.position.distanceTo(CENTRO);
+      neblina.near = THREE.MathUtils.lerp(0.1, d * 0.75, terra);
+      neblina.far = THREE.MathUtils.lerp(0.2, d + 15, terra);
+      scene.background.set(NOITE).multiplyScalar(terra);
+      neblina.color.copy(scene.background);
+      mundo.visible = terra > 0.01;
+    }
+
+    function atualizarHistoria(t) {
+      const luzCeu = suave(0.9, 1.7, s);
+      ceu.atualizar(t, renderer.getPixelRatio(), luzCeu, suave(2.4, 3, s));
+      bigBang.atualizar(s, t, renderer.getPixelRatio());
+      meteoro.atualizar(s, ORIGEM_METEORO, CENTRO.clone().setY(chaoCentro + 0.3));
+      emblema.atualizar(s, camera);
+
+      const metritoAceso = suave(3, 3.4, s);
+      const pulso = 0.75 + 0.25 * Math.sin(t * 1.3);
+      nucleo.material.opacity = pulso * metritoAceso;
+      metrito.intensity = (13 + 4 * Math.sin(t * 1.3)) * metritoAceso;
+      matFeixeQueda.opacity = 0.4 * metritoAceso;
+      if (poeira) poeira.visible = metritoAceso > 0.01;
+      uMetrito.raio.value = THREE.MathUtils.lerp(0.4, 1.6, metritoAceso) + suave(3.6, 4.8, s) * 18;
+      if (matTerreno) matTerreno.emissiveIntensity = (0.9 + 0.3 * Math.sin(t * 1.3)) * metritoAceso;
+
+      const subida = suave(3, 4, s);
+      fragmentos.forEach((f) => {
+        f.visible = subida > 0.01;
+        f.position.set(CENTRO.x + f.userData.base.x, chaoCentro + f.userData.base.y * subida, CENTRO.z + f.userData.base.z);
+        if (!reduz) {
+          f.position.y += Math.sin(t * 0.3 + f.userData.fase) * 0.08;
+          f.rotation.x += f.userData.gira;
+          f.rotation.y += f.userData.gira * 0.7;
+        }
+      });
+      if (arvores) arvores.grupo.visible = s > 2.2;
+      tochas?.atualizar(s, t);
+
+      // som: o Big Bang e o impacto, só quando a história passa por eles indo para a frente
+      if (sAnterior < 1 && s >= 1) somRef.current?.estrondo(0.6);
+      if (sAnterior < 3 && s >= 3) somRef.current?.estrondo(1);
+      sAnterior = s;
+
+      // escolas aparecem com A Ordem
+      const escolasVisiveis = suave(5.6, 6.2, s);
+      grupoEscolas.visible = escolasVisiveis > 0.01;
+      alvosClique.forEach((a) => {
+        a.userData.luz.material.opacity = escolasVisiveis;
+        a.userData.feixe.material.uniforms.forca.value = escolasVisiveis;
+      });
+
+      // capítulos das escolas: o portal abre sozinho
+      const c = Math.round(s);
+      const atual = c >= CAP_ESCOLAS && c < FINAL && Math.abs(s - c) < 0.5 ? alvosClique[c - CAP_ESCOLAS] : null;
+      if (!escolaAberta && atual !== escolaRoteiro) {
+        escolaRoteiro = atual;
+        if (atual) abrirPortal(atual);
+        else portal.fechar();
+      }
+      if (escolaAberta && s < FINAL - 0.5) fecharEscola();
+
+      // textos
+      secao.querySelectorAll("[data-capitulo]").forEach((el) => {
+        const o = opacidadeCapitulo(Number(el.dataset.capitulo), s) * (escolaAberta ? 0 : 1);
+        el.style.opacity = o.toFixed(3);
+        el.style.visibility = o > 0.01 ? "visible" : "hidden";
+        el.style.transform = `translateY(${((1 - o) * 14).toFixed(1)}px)`;
+      });
+      if (dicaRef.current) dicaRef.current.style.opacity = (1 - suave(0.05, 0.4, s)).toFixed(3);
     }
 
     function atualizarRotulo() {
       const el = rotuloRef.current;
       if (!el) return;
-      if (!foco || escolaAberta) {
+      if (!foco || escolaAberta || s < FINAL - 0.4) {
         el.style.opacity = "0";
         return;
       }
@@ -559,36 +736,29 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       const t = relogio.getElapsedTime();
       const dt = Math.min(t - tAnterior, 0.1);
       tAnterior = t;
-      progressoSuave += (progresso - progressoSuave) * (reduz ? 1 : 0.06);
+      const alvoS = progresso * FINAL;
+      s += (alvoS - s) * (reduz ? 1 : 1 - Math.exp(-dt * 3.5));
+      if (Math.abs(alvoS - s) < 0.0005) s = alvoS;
       giro += (giroAlvo - giro) * 0.08;
-      posicionarCamera(t, dt);
+      posicionarCamera(dt);
+      atualizarHistoria(t);
 
-      if (!reduz) {
-        fragmentos.forEach((f) => {
-          f.position.y += Math.sin(t * 0.3 + f.userData.fase) * 0.002;
-          f.rotation.x += f.userData.gira;
-          f.rotation.y += f.userData.gira * 0.7;
-        });
-      }
       matPoeira.uniforms.tempo.value = t;
-      ceu.atualizar(t, renderer.getPixelRatio());
-      nucleo.material.opacity = 0.75 + 0.25 * Math.sin(t * 1.3);
-      metrito.intensity = 13 + 4 * Math.sin(t * 1.3);
-      if (matTerreno) matTerreno.emissiveIntensity = 0.9 + 0.3 * Math.sin(t * 1.3);
+      const livre = s > FINAL - 0.4;
       ray.setFromCamera(ponteiro, camera);
-      const hit = ray.intersectObjects(alvosClique)[0]?.object || null;
+      const hit = livre ? ray.intersectObjects(alvosClique)[0]?.object || null : null;
       if (hit !== foco) {
         foco = hit;
-        palco.style.cursor = hit ? "pointer" : arrastando ? "grabbing" : "grab";
+        palco.style.cursor = hit ? "pointer" : livre ? "grab" : "default";
       }
       alvosClique.forEach((a) => {
         const { luz, feixe, onda, fase } = a.userData;
-        const alvoEscala = a === foco || a === escolaAberta ? 1.7 : 1;
+        const alvoEscala = a === foco || a === escolaAberta || a === escolaRoteiro ? 1.7 : 1;
         luz.scale.setScalar(luz.scale.x + (alvoEscala - luz.scale.x) * 0.15);
         feixe.material.uniforms.tempo.value = t + fase;
         const ciclo = ((reduz ? 0.5 : t * 0.35) + fase) % 1;
         onda.scale.setScalar(0.2 + ciclo * 0.9);
-        onda.material.opacity = (1 - ciclo) * 0.6;
+        onda.material.opacity = (1 - ciclo) * 0.6 * suave(5.6, 6.2, s);
       });
       portal.atualizar(t, dt, camera);
       atualizarRotulo();
@@ -616,17 +786,16 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     const aoMover = (ev) => {
       const r = palco.getBoundingClientRect();
       ponteiro.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
-      if (arrastando && !escolaAberta) {
+      if (arrastando && !escolaAberta && s > FINAL - 0.4) {
         giroAlvo = arrastando.giro - ((ev.clientX - arrastando.x) / r.width) * 3;
         if (Math.abs(ev.clientX - arrastando.x) > 4) arrastando.moveu = true;
       }
     };
     const aoApertar = (ev) => {
       arrastando = { x: ev.clientX, giro: giroAlvo, moveu: false };
-      palco.style.cursor = foco ? "pointer" : "grabbing";
     };
     const aoSoltar = (ev) => {
-      if (arrastando && !arrastando.moveu) {
+      if (arrastando && !arrastando.moveu && s > FINAL - 0.4) {
         // raio na hora do clique, sem depender do último quadro desenhado
         aoMover(ev);
         ray.setFromCamera(ponteiro, camera);
@@ -635,7 +804,6 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         else if (!clicado && escolaAberta) fecharEscola();
       }
       arrastando = null;
-      palco.style.cursor = foco ? "pointer" : "grab";
     };
     const aoSair = () => ponteiro.set(9, 9);
     const aoTecla = (ev) => {
@@ -666,8 +834,8 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       });
     enquadrar();
     lerScroll();
-    progressoSuave = progresso;
-    palco.style.cursor = "grab";
+    s = progresso * FINAL;
+    sAnterior = s;
     tocar();
 
     return () => {
@@ -676,6 +844,10 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       limparEscolas();
       ceu.descartar();
       arvores?.descartar();
+      tochas?.descartar();
+      bigBang.descartar();
+      meteoro.descartar();
+      emblema.descartar();
       ro.disconnect();
       io.disconnect();
       window.removeEventListener("scroll", lerScroll);
@@ -721,7 +893,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
   }
 
   return (
-    <section ref={secaoRef} style={st.secao}>
+    <section ref={secaoRef} style={{ ...st.secao, height: `${(FINAL + 1) * 100}vh` }}>
       <div ref={fixoRef} style={st.fixo}>
         <div ref={palcoRef} style={st.palco} />
         <div style={st.vinheta} />
@@ -729,16 +901,43 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
           <strong style={st.rotuloNome} />
           <span style={st.rotuloSub} />
         </div>
-        <div style={{ ...st.conteudo, opacity: entrou && !selecionada ? 1 : 0 }}>{children}</div>
-        <p style={{ ...st.dica, bottom: telaEstreita ? 78 : 28, opacity: entrou && !selecionada ? 1 : 0 }}>
-          Role ou arraste para explorar.
-          <br />
-          Clique nas luzes para conhecer as escolas.
+
+        {/* Capítulos 0 a 7: a história */}
+        {historia.map((texto, i) => (
+          <p key={i} data-capitulo={i} style={{ ...st.capitulo, ...(i === 1 || i === 3 ? st.capituloCentro : null) }}>
+            {texto}
+          </p>
+        ))}
+
+        {/* Capítulos 8 a 11: as escolas */}
+        {escolas.slice(0, FINAL - CAP_ESCOLAS).map((e, i) => (
+          <div key={e.id} data-capitulo={CAP_ESCOLAS + i} style={st.escola}>
+            <p style={{ ...st.painelSub, color: e.cor || OURO }}>{e.subtitulo}</p>
+            <h2 style={st.painelNome}>{e.nome}</h2>
+            <p style={st.escolaResumo}>{e.resumo}</p>
+            <button type="button" style={st.painelBotao} onClick={() => onEscola?.(e.id)}>
+              CONHECER A ESCOLA
+            </button>
+          </div>
+        ))}
+
+        {/* Capítulo 12: a entrada */}
+        <div data-capitulo={FINAL} style={st.final}>
+          <button type="button" style={st.painelBotao} onClick={() => onEntrar?.()}>
+            ENTRAR NA ORDEM
+          </button>
+          <p style={st.finalDica}>Arraste para girar · clique nas luzes para rever as escolas</p>
+        </div>
+
+        <p ref={dicaRef} style={{ ...st.rolar, visibility: entrou ? "visible" : "hidden" }}>
+          ROLE PARA DESCOBRIR
+          <br />↓
         </p>
+
         {selecionada && (
           <>
             <button type="button" style={st.voltar} onClick={() => mundoRef.current?.fecharEscola()}>
-              ← VOLTAR AO MAPA
+              ← VOLTAR
             </button>
             <div style={st.painel}>
               <p style={{ ...st.painelSub, color: selecionada.cor || OURO }}>{selecionada.subtitulo}</p>
@@ -759,7 +958,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         </button>
         {!entrou && (
           <div style={st.portao}>
-            <img src={urlEmblema} alt="Emblema dos Scrips" style={st.emblema} />
+            <p style={st.portaoTitulo}>A QUEDA DE UMA ORDEM</p>
             <p style={st.portaoFrase}>“Esqueça tudo o que acredita saber. O que vou te revelar... muda tudo.”</p>
             <div style={st.portaoBotoes}>
               <button type="button" style={st.portaoBotao} onClick={() => entrar(true)}>
@@ -776,7 +975,70 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
   );
 }
 
+const SERIFA = "'Palatino Linotype', 'Book Antiqua', Palatino, serif";
+
 const st = {
+  capitulo: {
+    position: "absolute",
+    left: "clamp(20px, 8vw, 120px)",
+    top: "clamp(70px, 16vh, 150px)",
+    maxWidth: "min(88vw, 36ch)",
+    margin: 0,
+    fontFamily: SERIFA,
+    fontSize: "clamp(1.05em, 2vw, 1.4em)",
+    lineHeight: 1.55,
+    color: "#efe6cf",
+    textShadow: "0 2px 18px rgba(0,0,0,0.9)",
+    opacity: 0,
+    visibility: "hidden",
+    pointerEvents: "none",
+    willChange: "opacity, transform",
+  },
+  capituloCentro: { left: "50%", translate: "-50% 0", textAlign: "center", top: "auto", bottom: "clamp(70px, 14vh, 130px)" },
+  escola: {
+    position: "absolute",
+    right: "clamp(20px, 7vw, 110px)",
+    bottom: "clamp(28px, 9vh, 90px)",
+    maxWidth: "min(88vw, 380px)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    alignItems: "flex-start",
+    opacity: 0,
+    visibility: "hidden",
+    padding: "18px 20px",
+    background: "linear-gradient(to bottom, rgba(6,9,12,0.15), rgba(6,9,12,0.7))",
+    borderLeft: "1px solid rgba(232,208,138,0.35)",
+  },
+  escolaResumo: { margin: 0, color: "#cfc6b0", lineHeight: 1.6, fontSize: "0.95em" },
+  final: {
+    position: "absolute",
+    left: "50%",
+    bottom: "clamp(84px, 12vh, 110px)",
+    translate: "-50% 0",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 12,
+    opacity: 0,
+    visibility: "hidden",
+    width: "min(90vw, 520px)",
+    textAlign: "center",
+  },
+  finalDica: { margin: 0, fontSize: "0.7em", letterSpacing: "1px", color: "#7d8a92" },
+  rolar: {
+    position: "absolute",
+    left: "50%",
+    bottom: 84,
+    transform: "translateX(-50%)",
+    margin: 0,
+    textAlign: "center",
+    fontSize: "0.66em",
+    letterSpacing: "4px",
+    color: "#8a95a0",
+    lineHeight: 2,
+    pointerEvents: "none",
+  },
   voltar: {
     position: "absolute",
     top: 24,
@@ -806,14 +1068,14 @@ const st = {
   painelSub: { margin: 0, fontSize: "0.72em", letterSpacing: "4px", textTransform: "uppercase" },
   painelNome: {
     margin: 0,
-    fontFamily: "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+    fontFamily: SERIFA,
     fontSize: "clamp(1.8em, 5vw, 2.8em)",
     fontWeight: 400,
     color: "#efe6cf",
     textShadow: "0 2px 24px rgba(0,0,0,0.8)",
   },
   painelBotao: {
-    marginTop: 12,
+    marginTop: 6,
     padding: "12px 26px",
     background: "rgba(6,9,12,0.55)",
     border: "1px solid rgba(232,208,138,0.5)",
@@ -824,14 +1086,14 @@ const st = {
     cursor: "pointer",
     fontFamily: "inherit",
   },
-  secao: { position: "relative", height: "260vh", zIndex: 2 },
+  secao: { position: "relative", zIndex: 2 },
   fixo: { position: "sticky", top: 0, height: "100vh", overflow: "hidden" },
   palco: { position: "absolute", inset: 0, touchAction: "pan-y" },
   vinheta: {
     position: "absolute",
     inset: 0,
     pointerEvents: "none",
-    background: "radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(4,6,8,0.75) 100%), linear-gradient(to bottom, transparent 75%, #070906 100%)",
+    background: "radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(4,6,8,0.75) 100%), linear-gradient(to bottom, transparent 80%, #070906 100%)",
   },
   rotulo: {
     position: "absolute",
@@ -852,27 +1114,6 @@ const st = {
   },
   rotuloNome: { fontSize: "0.85em", letterSpacing: "2px", color: "#e8d08a", fontWeight: 700 },
   rotuloSub: { fontSize: "0.62em", letterSpacing: "3px", color: "#9aa7ae", textTransform: "uppercase", marginTop: 2 },
-  conteudo: {
-    position: "absolute",
-    left: "clamp(20px, 9vw, 140px)",
-    top: "clamp(110px, 22vh, 200px)",
-    maxWidth: 460,
-    transition: "opacity 1.2s 0.4s",
-    pointerEvents: "none",
-  },
-  dica: {
-    position: "absolute",
-    right: "max(20px, env(safe-area-inset-right, 0px))",
-    bottom: 28,
-    margin: 0,
-    textAlign: "right",
-    fontSize: "0.7em",
-    letterSpacing: "1px",
-    color: "#6f7d85",
-    lineHeight: 1.6,
-    transition: "opacity 1.2s 0.8s",
-    pointerEvents: "none",
-  },
   som: {
     position: "absolute",
     left: "max(20px, env(safe-area-inset-left, 0px))",
@@ -892,7 +1133,7 @@ const st = {
     position: "absolute",
     inset: 0,
     zIndex: 5,
-    background: "radial-gradient(ellipse at center, #0e141a 0%, #06080a 75%)",
+    background: "radial-gradient(ellipse at center, #0b0e12 0%, #000 75%)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -901,7 +1142,7 @@ const st = {
     padding: "24px",
     textAlign: "center",
   },
-  emblema: { height: "min(400px, 50vh)", width: "auto", marginBottom: 4 },
+  portaoTitulo: { margin: 0, letterSpacing: "8px", fontSize: "0.95em", color: "#e8d08a" },
   portaoFrase: { margin: 0, maxWidth: 420, fontStyle: "italic", color: "#8a7a55", fontSize: "0.95em", lineHeight: 1.6 },
   portaoBotoes: { display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginTop: 18 },
   portaoBotao: {

@@ -132,6 +132,11 @@ const HISTORIA = [
   `A Ordem resistiu. Durante séculos, resistiu. Mas toda ordem tem seu fim. E o fim desta... pode estar mais próximo do que qualquer um imagina.`,
 ];
 
+// A história em capítulos para a abertura em 3D: cada um aparece num trecho do scroll
+const [ANTES_DO_BIG_BANG, BIG_BANG] = HISTORIA[0].split(/(?=Então\.\.\.)/);
+const [METEORO, IMPACTO] = HISTORIA[1].split(/(?=Quando colidiu)/);
+const CAPITULOS = [ANTES_DO_BIG_BANG, BIG_BANG, METEORO, IMPACTO, ...HISTORIA.slice(2)].map((t) => t.trim());
+
 const ESCOLAS_PADRAO = [
   {
     id: "primordiais",
@@ -249,16 +254,9 @@ export default function TelaInicial({ onEntrar }) {
   const { paises, projecao, pathGen } = useMundoGeo();
 
   // Refs para animações por seção
-  const heroRef = useRef(null);
-  const historiaRef = useRef(null);
   const escolasRef = useRef(null);
   const ctaRef = useRef(null);
 
-  const heroInView = useInView(heroRef, { once: true });
-  const historiaInView = useInView(historiaRef, {
-    once: true,
-    margin: "-80px",
-  });
   const escolasInView = useInView(escolasRef, { once: true, margin: "-80px" });
   const ctaInView = useInView(ctaRef, { once: true, margin: "-80px" });
 
@@ -316,82 +314,10 @@ export default function TelaInicial({ onEntrar }) {
         <BotaoDourado onClick={onEntrar}>ENTRAR NA ORDEM</BotaoDourado>
       </motion.nav>
 
-      {/* ── HERO — o Terreno Suspenso em 3D, com o título por cima ── */}
-      <MundoOrdem escolas={escolas} onEscola={setEscolaAtiva}>
-        <motion.div
-          ref={heroRef}
-          style={s.hero}
-          initial="hidden"
-          animate={heroInView ? "visible" : "hidden"}
-          variants={fadeUp}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-        >
-          <p style={s.heroEyebrow}>O DESPERTAR DOS SCRIPS</p>
-          <h1 style={s.heroTitulo}>A ORDEM CAIU.</h1>
-          <p style={s.heroSub}>Seu despertar começa aqui.</p>
-          <button
-            type="button"
-            style={s.heroBotao}
-            onClick={() => escolasRef.current?.scrollIntoView({ behavior: "smooth" })}
-          >
-            CONHECER AS ESCOLAS
-          </button>
-        </motion.div>
-      </MundoOrdem>
+      {/* ── ABERTURA — a história contada pelo scroll, em 3D ── */}
+      <MundoOrdem escolas={escolas} historia={CAPITULOS} onEscola={setEscolaAtiva} onEntrar={onEntrar} />
 
       <div style={s.pagina}>
-
-        {/* ── SEÇÃO HISTÓRIA — parágrafos em stagger ── */}
-        <section style={s.secao}>
-          <motion.div
-            style={s.secaoHeader}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-60px" }}
-            variants={fadeIn}
-            transition={{ duration: 0.6 }}
-          >
-            <div style={s.secaoLinha} />
-            <h2 style={s.secaoTitulo}>HISTÓRIA</h2>
-            <div style={s.secaoLinha} />
-          </motion.div>
-
-          <motion.div
-            ref={historiaRef}
-            style={s.historiaTexto}
-            initial="hidden"
-            animate={historiaInView ? "visible" : "hidden"}
-            variants={staggerContainer}
-          >
-            {HISTORIA.map((p, i) => (
-              <motion.p
-                key={i}
-                style={{
-                  ...s.paragrafo,
-                  fontSize: i === 0 ? "1.05em" : "0.92em",
-                  color: i === 0 ? "#d4b050" : "#9a8040",
-                }}
-                variants={fadeUp}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              >
-                {p}
-              </motion.p>
-            ))}
-          </motion.div>
-
-          <motion.div
-            style={s.divisorOrnamental}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeIn}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            <div style={s.divisorLinha} />
-            <span style={s.divisorIcone}>✦</span>
-            <div style={s.divisorLinha} />
-          </motion.div>
-        </section>
 
         {/* ── SEÇÃO ESCOLAS ── */}
         <section ref={escolasRef} style={s.secao}>
