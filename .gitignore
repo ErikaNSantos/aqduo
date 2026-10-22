@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# cache do relevo baixado por scripts/gerar_terreno.py
+arte/relevo-cangalha.npy

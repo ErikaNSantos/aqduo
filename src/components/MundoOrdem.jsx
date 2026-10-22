@@ -1,29 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import urlAltura from "../assets/terreno/altura.png";
+import urlRelevo from "../assets/terreno/relevo.png";
 import urlCor from "../assets/terreno/cor.jpg";
+import urlNormal from "../assets/terreno/normal.jpg";
 import urlBrilho from "../assets/terreno/brilho.png";
+import infoTerreno from "../assets/terreno/info.json";
 import urlEmblema from "../assets/emblema-titulo.png";
 
 // ─────────────────────────────────────────────
-// MUNDO 3D DA ABERTURA — a lua rachada de A Ordem
-// Uma ilha flutuante cujo relevo sai de src/assets/terreno/altura.png, gerado a
-// partir do emblema de A Ordem (scripts/gerar_terreno.py): o disco da lua partido
-// por uma fenda onde o Metrito brilha, com os fragmentos subindo num feixe de luz.
-// As escolas da Ordem são luzes no planalto.
-// Rolar move a câmera; arrastar gira a ilha; clicar numa luz abre a escola.
+// MUNDO 3D DA ABERTURA — o lugar onde o meteoro caiu
+// O relevo é o real da Serra da Cangalha (TO), uma cratera de impacto de ~13 km,
+// gerado por scripts/gerar_terreno.py a partir de dados abertos de elevação e
+// fotos aéreas CC0. No centro do impacto o Metrito brilha em azul, com os
+// fragmentos subindo num feixe de luz. As escolas da Ordem são luzes na borda.
+// Rolar aproxima a câmera; arrastar gira; clicar numa luz abre a escola.
 // ─────────────────────────────────────────────
 
 const NOITE = "#0a0f14";
 const OURO = "#e8c96a";
-const RAIO_ILHA = 9;
-const ANEIS = [
-  { r: 2.7, altura: 0.75, largura: 0.6, aberturas: 3, fase: 0.4 },
-  { r: 4.9, altura: 1.0, largura: 0.7, aberturas: 4, fase: 1.7 },
-  { r: 7.1, altura: 1.25, largura: 0.8, aberturas: 5, fase: 2.9 },
-];
+const AZUL = "#5cc3ff";
+const LADO = infoTerreno.km; // 1 unidade = 1 km
+const EXAGERO = 5; // o relevo real é baixo para o tamanho da cratera
+const ALT_REF = infoTerreno.altitude_min + 120;
+const CENTRO = new THREE.Vector3((infoTerreno.centro[0] - 0.5) * LADO, 0, (infoTerreno.centro[1] - 0.5) * LADO);
 
-// Ruído de valor 2D, determinístico (a ilha sai sempre igual)
 function hash(x, y) {
   const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
   return s - Math.floor(s);
@@ -41,43 +41,10 @@ function ruido(x, y) {
   const d = hash(xi + 1, yi + 1);
   return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
 }
-function fbm(x, y) {
-  let s = 0;
-  let amp = 0.5;
-  let f = 1;
-  for (let i = 0; i < 5; i++) {
-    s += amp * (ruido(x * f, y * f) * 2 - 1);
-    f *= 2.03;
-    amp *= 0.5;
-  }
-  return s;
-}
-const suave = (a, b, x) => {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-};
 
-/** Altura do terreno: anéis com aberturas, cratera no centro e borda que cai. */
-function altura(x, z) {
-  const r = Math.hypot(x, z);
-  const ang = Math.atan2(z, x);
-  let h = 0.15 + fbm(x * 0.32, z * 0.32) * 0.55;
-  for (const a of ANEIS) {
-    const crista = Math.exp(-((r - a.r) ** 2) / (2 * a.largura ** 2));
-    const abre = 0.25 + 0.75 * suave(-0.35, 0.45, Math.sin(ang * a.aberturas + a.fase) + fbm(x * 0.6, z * 0.6) * 0.6);
-    h += crista * a.altura * abre * (0.85 + 0.3 * ruido(x * 1.3, z * 1.3));
-  }
-  h -= 1.1 * Math.exp(-(r * r) / (2 * 1.1 ** 2)); // cratera do impacto
-  const borda = suave(RAIO_ILHA, RAIO_ILHA - 1.4, r);
-  return h * borda - (1 - borda) * 0.6;
-}
-
-const NIVEL_AGUA = 0.33; // altura da imagem (0 a 1) que vira o nível do lago
-const ESCALA_ALTURA = 5.5;
-
-/** Lê as imagens do terreno e devolve funções de altura e brilho em coordenadas do mundo. */
+/** Lê o relevo (16 bits em R e G) e o brilho, e devolve funções em coordenadas do mundo. */
 function carregarRelevo() {
-  const ler = (url) =>
+  const ler = (url, dezesseis) =>
     new Promise((ok, erro) => {
       const img = new Image();
       img.onload = () => {
@@ -88,15 +55,15 @@ function carregarRelevo() {
         ctx.drawImage(img, 0, 0);
         const px = ctx.getImageData(0, 0, c.width, c.height).data;
         const v = new Float32Array(c.width * c.height);
-        for (let i = 0; i < v.length; i++) v[i] = px[i * 4] / 255;
+        for (let i = 0; i < v.length; i++) v[i] = dezesseis ? (px[i * 4] * 256 + px[i * 4 + 1]) / 65535 : px[i * 4] / 255;
         ok({ v, w: c.width, h: c.height });
       };
       img.onerror = erro;
       img.src = url;
     });
   const amostra = ({ v, w, h }, x, z) => {
-    const u = Math.min(w - 1.001, Math.max(0, ((x / RAIO_ILHA + 1) / 2) * (w - 1)));
-    const t = Math.min(h - 1.001, Math.max(0, ((z / RAIO_ILHA + 1) / 2) * (h - 1)));
+    const u = Math.min(w - 1.001, Math.max(0, (x / LADO + 0.5) * (w - 1)));
+    const t = Math.min(h - 1.001, Math.max(0, (z / LADO + 0.5) * (h - 1)));
     const x0 = Math.floor(u);
     const y0 = Math.floor(t);
     const fx = u - x0;
@@ -107,76 +74,11 @@ function carregarRelevo() {
     const d = v[(y0 + 1) * w + x0 + 1];
     return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
   };
-  return Promise.all([ler(urlAltura), ler(urlBrilho)]).then(([alt, bri]) => ({
-    altura: (x, z) => (amostra(alt, x, z) - NIVEL_AGUA) * ESCALA_ALTURA,
+  const faixa = infoTerreno.altitude_max - infoTerreno.altitude_min;
+  return Promise.all([ler(urlRelevo, true), ler(urlBrilho, false)]).then(([rel, bri]) => ({
+    altura: (x, z) => ((infoTerreno.altitude_min + amostra(rel, x, z) * faixa - ALT_REF) / 1000) * EXAGERO,
     brilho: (x, z) => amostra(bri, x, z),
-    imagens: true,
   }));
-}
-
-/** Malha radial da ilha, com cor por altura e inclinação. */
-function malhaIlha(aneisMalha, setores, altura) {
-  const pos = [];
-  const cor = [];
-  const idx = [];
-  const uv = [];
-  const rocha = new THREE.Color("#2b3d47");
-  const pedraAlta = new THREE.Color("#6a8796");
-  const musgo = new THREE.Color("#2c5244");
-  const vale = new THREE.Color("#18252d");
-  const c = new THREE.Color();
-  for (let i = 0; i <= aneisMalha; i++) {
-    const r = RAIO_ILHA * Math.pow(i / aneisMalha, 0.85);
-    for (let j = 0; j < setores; j++) {
-      const a = (j / setores) * Math.PI * 2;
-      const x = Math.cos(a) * r;
-      const z = Math.sin(a) * r;
-      const y = altura(x, z);
-      pos.push(x, y, z);
-      uv.push((x / RAIO_ILHA + 1) / 2, 1 - (z / RAIO_ILHA + 1) / 2);
-      const inclin = Math.abs(altura(x + 0.08, z) - y) + Math.abs(altura(x, z + 0.08) - y);
-      c.copy(vale).lerp(rocha, suave(-0.4, 0.3, y)).lerp(pedraAlta, suave(0.7, 1.5, y));
-      if (inclin < 0.035 && y > 0.2) c.lerp(musgo, 0.55);
-      cor.push(c.r, c.g, c.b);
-    }
-  }
-  for (let i = 0; i < aneisMalha; i++) {
-    for (let j = 0; j < setores; j++) {
-      const a = i * setores + j;
-      const b = i * setores + ((j + 1) % setores);
-      const d = (i + 1) * setores + j;
-      const e = (i + 1) * setores + ((j + 1) % setores);
-      idx.push(a, b, d, b, e, d);
-    }
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute("color", new THREE.Float32BufferAttribute(cor, 3));
-  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
-  geo.setIndex(idx);
-  geo.computeVertexNormals();
-  return geo;
-}
-
-/** Base de rocha pendurada sob a ilha (é o que faz ela flutuar). */
-function malhaBase(raio, fundo, semente, topo = -0.55) {
-  const perfil = [];
-  for (let i = 0; i <= 24; i++) {
-    const t = i / 24;
-    const r = raio * (1 - Math.pow(t, 0.7)) + 0.15;
-    perfil.push(new THREE.Vector2(r, topo - t * fundo));
-  }
-  const geo = new THREE.LatheGeometry(perfil, 96);
-  const p = geo.attributes.position;
-  const v = new THREE.Vector3();
-  for (let i = 0; i < p.count; i++) {
-    v.fromBufferAttribute(p, i);
-    const n = fbm(v.x * 0.45 + semente, v.z * 0.45 + v.y * 0.3) * 0.9;
-    const k = 1 + n * 0.35;
-    p.setXYZ(i, v.x * k, v.y + n * 0.6, v.z * k);
-  }
-  geo.computeVertexNormals();
-  return geo;
 }
 
 function texturaBrilho() {
@@ -328,33 +230,31 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, estreito ? 1.5 : 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.25;
     renderer.domElement.style.display = "block";
     palco.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(NOITE);
-    scene.fog = new THREE.FogExp2(NOITE, 0.024);
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 300);
+    const neblina = new THREE.Fog(NOITE, 14, 34);
+    scene.fog = neblina;
+    const camera = new THREE.PerspectiveCamera(estreito ? 52 : 42, 1, 0.1, 300);
     const lixo = [];
     const g = (o) => (lixo.push(o), o);
     const brilho = g(texturaBrilho());
 
-    // Luz: lua fria, céu e o Metrito dourado na cratera
-    scene.add(new THREE.HemisphereLight("#7d9cc0", "#0b0f12", 1.1));
-    const lua = new THREE.DirectionalLight("#a9c3de", 2.2);
-    lua.position.set(-8, 14, -6);
+    // Luz: lua baixa e fria (realça o relevo) e o Metrito azul no centro do impacto
+    scene.add(new THREE.HemisphereLight("#8aa6c8", "#0b0f12", 0.9));
+    const lua = new THREE.DirectionalLight("#b4c8e0", 2.6);
+    lua.position.set(-12, 7, -8);
     scene.add(lua);
-    const metrito = new THREE.PointLight("#ffd98a", 12, 7, 1.8);
-    metrito.position.set(0, 0.2, 0);
+    const metrito = new THREE.PointLight(AZUL, 14, 9, 1.6);
     scene.add(metrito);
 
-    // A ilha (montada quando as imagens do terreno chegam) e as ilhas menores ao longe
-    const ilha = new THREE.Group();
-    scene.add(ilha);
-    const matBase = g(new THREE.MeshStandardMaterial({ color: "#141d22", roughness: 1, flatShading: true }));
+    const mundo = new THREE.Group();
+    scene.add(mundo);
 
-    // Fragmentos arrancados pela queda, subindo em coluna sobre a fenda
+    // Fragmentos arrancados pela queda, subindo em coluna sobre o centro do impacto
     const geoFragmento = g(new THREE.IcosahedronGeometry(1, 1));
     {
       const p = geoFragmento.attributes.position;
@@ -366,128 +266,124 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       }
       geoFragmento.computeVertexNormals();
     }
-    const matFragmento = g(new THREE.MeshStandardMaterial({ color: "#8f846f", roughness: 0.95, flatShading: true }));
+    const matFragmento = g(new THREE.MeshStandardMaterial({ color: "#7d776a", roughness: 0.95, flatShading: true }));
+    const fragmentos = [];
     for (let i = 0; i < 16; i++) {
       const f = new THREE.Mesh(geoFragmento, matFragmento);
       const subida = i / 15;
-      f.position.set((Math.random() - 0.4) * (0.8 + subida * 1.5), 2.2 + subida * 11 + Math.random() * 0.6, -0.4 + (Math.random() - 0.5) * 2.4);
-      f.scale.setScalar(0.12 + Math.random() * 0.35 * (1 - subida * 0.6));
+      f.userData.base = new THREE.Vector3((Math.random() - 0.5) * (0.8 + subida * 1.6), 2.4 + subida * 11 + Math.random() * 0.6, (Math.random() - 0.5) * 1.6);
+      f.scale.setScalar(0.1 + Math.random() * 0.3 * (1 - subida * 0.6));
       f.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
       f.userData.fase = i;
       f.userData.gira = (Math.random() - 0.5) * 0.004;
-      scene.add(f);
+      fragmentos.push(f);
+      mundo.add(f);
     }
 
-    // O risco vertical da arte: um feixe de luz atravessando a ilha
+    // O feixe de luz que atravessa o centro do impacto
     const feixeQueda = new THREE.Mesh(
-      g(new THREE.CylinderGeometry(0.025, 0.025, 40, 8, 1, true)),
-      g(new THREE.MeshBasicMaterial({ color: OURO, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false })),
+      g(new THREE.CylinderGeometry(0.02, 0.02, 40, 8, 1, true)),
+      g(new THREE.MeshBasicMaterial({ color: AZUL, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false })),
     );
-    feixeQueda.position.set(0, 6, -0.38);
-    scene.add(feixeQueda);
+    mundo.add(feixeQueda);
 
-    // Mar de nuvens embaixo
-    const matNuvem = g(new THREE.SpriteMaterial({ map: brilho, color: "#4c6378", transparent: true, opacity: 0.16, depthWrite: false }));
-    for (let i = 0; i < 26; i++) {
-      const n = new THREE.Sprite(matNuvem);
-      const a = Math.random() * Math.PI * 2;
-      const r = 6 + Math.random() * 26;
-      n.position.set(Math.cos(a) * r, -7 - Math.random() * 5, Math.sin(a) * r);
-      n.scale.setScalar(10 + Math.random() * 14);
-      scene.add(n);
-    }
-
-    // Terreno, lago, poeira de Metrito sobre o emblema e o brilho da estrela
-    const matPoeira = g(matCintilante(26));
-    const nucleo = new THREE.Sprite(g(new THREE.SpriteMaterial({ map: brilho, color: OURO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })));
-    nucleo.scale.setScalar(2.4);
+    const matPoeira = g(matCintilante(24));
+    const nucleo = new THREE.Sprite(g(new THREE.SpriteMaterial({ map: brilho, color: AZUL, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })));
+    nucleo.scale.setScalar(2.6);
     let matTerreno = null;
     let relevo = null;
 
     function montarTerreno(r) {
       relevo = r;
       const carregador = new THREE.TextureLoader();
-      const cor = r.imagens ? g(carregador.load(urlCor)) : null;
-      const luzEmblema = r.imagens ? g(carregador.load(urlBrilho)) : null;
-      if (cor) cor.colorSpace = THREE.SRGBColorSpace;
+      const cor = g(carregador.load(urlCor));
+      cor.colorSpace = THREE.SRGBColorSpace;
+      cor.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const normal = g(carregador.load(urlNormal));
+      const luzMetrito = g(carregador.load(urlBrilho));
       matTerreno = g(
         new THREE.MeshStandardMaterial({
           map: cor,
-          vertexColors: !cor,
-          emissive: "#c9952f",
-          emissiveMap: luzEmblema,
-          emissiveIntensity: luzEmblema ? 0.8 : 0,
-          roughness: 0.9,
-          metalness: 0.05,
+          normalMap: normal,
+          normalScale: new THREE.Vector2(1.4, 1.4),
+          emissive: AZUL,
+          emissiveMap: luzMetrito,
+          emissiveIntensity: 1,
+          roughness: 0.95,
+          metalness: 0,
         }),
       );
-      ilha.add(new THREE.Mesh(g(malhaIlha(estreito ? 110 : 180, estreito ? 180 : 300, r.altura)), matTerreno));
-      const borda = r.altura(RAIO_ILHA, 0);
-      ilha.add(new THREE.Mesh(g(malhaBase(RAIO_ILHA * 1.01, 7, 3.1, borda + 0.1)), matBase));
+      const divisoes = estreito ? 170 : 256;
+      const geo = g(new THREE.PlaneGeometry(LADO, LADO, divisoes, divisoes));
+      geo.rotateX(-Math.PI / 2);
+      const pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) pos.setY(i, r.altura(pos.getX(i), pos.getZ(i)));
+      geo.computeVertexNormals();
+      mundo.add(new THREE.Mesh(geo, matTerreno));
 
-      const pos = [];
+      // Poeira de Metrito subindo da bacia do impacto
+      const pts = [];
       const fases = [];
       const cores = [];
       const sobe = [];
-      const ouro = new THREE.Color(OURO);
-      for (let k = 0; k < 9000 && pos.length < 2400 * 3; k++) {
-        const x = (Math.random() * 2 - 1) * RAIO_ILHA * 0.8;
-        const z = (Math.random() * 2 - 1) * RAIO_ILHA * 0.8;
+      const azul = new THREE.Color(AZUL);
+      for (let k = 0; k < 12000 && pts.length < 1800 * 3; k++) {
+        const x = CENTRO.x + (Math.random() * 2 - 1) * 4;
+        const z = CENTRO.z + (Math.random() * 2 - 1) * 4;
         const b = r.brilho(x, z);
-        if (b < 0.35) continue;
-        pos.push(x, r.altura(x, z) + 0.05, z);
+        if (b < 0.3) continue;
+        pts.push(x, r.altura(x, z) + 0.04, z);
         fases.push(Math.random());
-        cores.push(ouro.r * b, ouro.g * b, ouro.b * b);
-        sobe.push(Math.random() < 0.35 ? 0.4 : 0);
+        cores.push(azul.r * b, azul.g * b, azul.b * b);
+        sobe.push(Math.random() < 0.4 ? 0.5 : 0);
       }
-      const geo = g(new THREE.BufferGeometry());
-      geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-      geo.setAttribute("fase", new THREE.Float32BufferAttribute(fases, 1));
-      geo.setAttribute("cor", new THREE.Float32BufferAttribute(cores, 3));
-      geo.setAttribute("sobe", new THREE.Float32BufferAttribute(sobe, 1));
-      ilha.add(new THREE.Points(geo, matPoeira));
+      const geoPoeira = g(new THREE.BufferGeometry());
+      geoPoeira.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+      geoPoeira.setAttribute("fase", new THREE.Float32BufferAttribute(fases, 1));
+      geoPoeira.setAttribute("cor", new THREE.Float32BufferAttribute(cores, 3));
+      geoPoeira.setAttribute("sobe", new THREE.Float32BufferAttribute(sobe, 1));
+      mundo.add(new THREE.Points(geoPoeira, matPoeira));
 
-      // A cratera no meio da rachadura fica um pouco acima do centro da arte
-      const zEstrela = r.imagens ? -0.38 : 0;
-      nucleo.position.set(0, r.altura(0, zEstrela) + 0.3, zEstrela);
-      metrito.position.set(0, nucleo.position.y + 0.4, zEstrela);
-      ilha.add(nucleo);
+      const chao = r.altura(CENTRO.x, CENTRO.z);
+      nucleo.position.set(CENTRO.x, chao + 0.35, CENTRO.z);
+      metrito.position.set(CENTRO.x, chao + 0.9, CENTRO.z);
+      feixeQueda.position.set(CENTRO.x, chao + 20, CENTRO.z);
+      fragmentos.forEach((f) => f.position.copy(f.userData.base).add(CENTRO).setY(chao + f.userData.base.y));
+      mundo.add(nucleo);
       montarEscolas(escolasPendentes);
     }
 
-    // Escolas: colunas de luz nos anéis
+    // Escolas: colunas de luz na borda da cratera
     const grupoEscolas = new THREE.Group();
-    ilha.add(grupoEscolas);
+    mundo.add(grupoEscolas);
     const alvosClique = [];
-    const matBrasa = g(matCintilante(34));
+    const matBrasa = g(matCintilante(30));
     let brasas = null;
-
     let escolasPendentes = [];
+
     function montarEscolas(lista) {
       escolasPendentes = lista;
       if (!relevo) return;
       grupoEscolas.clear();
       alvosClique.length = 0;
       if (brasas) {
-        ilha.remove(brasas);
+        mundo.remove(brasas);
         brasas.geometry.dispose();
         brasas = null;
       }
-      const raios = [6.2, 6.6];
       const pBrasa = [];
       const fBrasa = [];
       const cBrasa = [];
       const sBrasa = [];
       lista.forEach((e, i) => {
         const ang = (i / lista.length) * Math.PI * 2 + Math.PI / 4;
-        const r = raios[i % 2];
-        const x = Math.cos(ang) * r;
-        const z = Math.sin(ang) * r;
-        const y = Math.max(relevo.altura(x, z), 0.3);
+        const x = CENTRO.x + Math.cos(ang) * 5.6;
+        const z = CENTRO.z + Math.sin(ang) * 5.6;
+        const y = relevo.altura(x, z);
         const cor = new THREE.Color(e.cor || OURO);
 
         const feixe = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.05, 0.22, 3.2, 16, 1, true),
+          new THREE.CylinderGeometry(0.04, 0.18, 2.6, 16, 1, true),
           new THREE.ShaderMaterial({
             uniforms: { cor: { value: cor }, tempo: { value: 0 } },
             vertexShader: `varying float vY; void main(){ vY = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
@@ -499,22 +395,22 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
             side: THREE.DoubleSide,
           }),
         );
-        feixe.position.set(x, y + 1.6, z);
+        feixe.position.set(x, y + 1.3, z);
         grupoEscolas.add(feixe);
 
         const luz = new THREE.Sprite(new THREE.SpriteMaterial({ map: brilho, color: cor, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
-        luz.position.set(x, y + 0.15, z);
-        luz.scale.setScalar(1.4);
+        luz.position.set(x, y + 0.12, z);
+        luz.scale.setScalar(1.2);
         grupoEscolas.add(luz);
 
-        const alvo = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
-        alvo.position.set(x, y + 0.8, z);
-        alvo.userData = { escola: e, luz, feixe, base: new THREE.Vector3(x, y + 0.3, z) };
+        const alvo = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
+        alvo.position.set(x, y + 0.7, z);
+        alvo.userData = { escola: e, luz, feixe, base: new THREE.Vector3(x, y + 0.25, z) };
         grupoEscolas.add(alvo);
         alvosClique.push(alvo);
 
         for (let k = 0; k < 40; k++) {
-          pBrasa.push(x + (Math.random() - 0.5) * 0.5, y + Math.random() * 0.2, z + (Math.random() - 0.5) * 0.5);
+          pBrasa.push(x + (Math.random() - 0.5) * 0.4, y + Math.random() * 0.15, z + (Math.random() - 0.5) * 0.4);
           fBrasa.push(Math.random());
           cBrasa.push(cor.r, cor.g, cor.b);
           sBrasa.push(0.8 + Math.random() * 0.6);
@@ -527,11 +423,11 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         geo.setAttribute("cor", new THREE.Float32BufferAttribute(cBrasa, 3));
         geo.setAttribute("sobe", new THREE.Float32BufferAttribute(sBrasa, 1));
         brasas = new THREE.Points(geo, matBrasa);
-        ilha.add(brasas);
+        mundo.add(brasas);
       }
     }
 
-    // Câmera: o scroll desce do alto até a beira da cratera; arrastar gira
+    // Câmera: gira em volta do centro do impacto; o scroll desce do alto até perto do chão
     const relogio = new THREE.Clock();
     let progresso = 0;
     let progressoSuave = 0;
@@ -544,6 +440,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     const ray = new THREE.Raycaster();
     const ponteiro = new THREE.Vector2(9, 9);
     const tela = new THREE.Vector3();
+    const alvoCamera = new THREE.Vector3();
 
     function lerScroll() {
       const r = secao.getBoundingClientRect();
@@ -553,11 +450,18 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
 
     function posicionarCamera(t) {
       const p = progressoSuave;
-      const dist = THREE.MathUtils.lerp(estreito ? 30 : 24, estreito ? 17 : 13.5, p);
-      const polar = THREE.MathUtils.lerp(0.55, 1.25, p);
-      const azim = -0.15 + p * 0.9 + giro + (reduz ? 0 : t * 0.02);
-      camera.position.set(Math.sin(polar) * Math.sin(azim) * dist, Math.cos(polar) * dist + 1, Math.sin(polar) * Math.cos(azim) * dist);
-      camera.lookAt(0, THREE.MathUtils.lerp(-0.5, 0.6, p), 0);
+      const dist = THREE.MathUtils.lerp(17, 8.5, p);
+      const polar = THREE.MathUtils.lerp(0.78, 1.3, p);
+      const azim = 0.15 + p * 1.0 + giro + (reduz ? 0 : t * 0.015);
+      camera.position.set(
+        CENTRO.x + Math.sin(polar) * Math.sin(azim) * dist,
+        Math.cos(polar) * dist + 0.6,
+        CENTRO.z + Math.sin(polar) * Math.cos(azim) * dist,
+      );
+      alvoCamera.set(CENTRO.x, THREE.MathUtils.lerp(-0.6, 0.4, p), CENTRO.z);
+      camera.lookAt(alvoCamera);
+      neblina.near = dist * 0.75;
+      neblina.far = dist + 15;
     }
 
     function atualizarRotulo() {
@@ -567,9 +471,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         el.style.opacity = "0";
         return;
       }
-      tela.copy(foco.userData.base);
-      ilha.localToWorld(tela);
-      tela.project(camera);
+      tela.copy(foco.userData.base).project(camera);
       const w = palco.clientWidth;
       const h = palco.clientHeight;
       el.style.transform = `translate(${(tela.x * 0.5 + 0.5) * w}px, ${(-tela.y * 0.5 + 0.5) * h}px) translate(-50%, -150%)`;
@@ -588,20 +490,17 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       posicionarCamera(t);
 
       if (!reduz) {
-        ilha.position.y = Math.sin(t * 0.4) * 0.12;
-        scene.children.forEach((o) => {
-          if (o.userData.fase != null) o.position.y += Math.sin(t * 0.3 + o.userData.fase) * 0.002;
-          if (o.userData.gira) {
-            o.rotation.x += o.userData.gira;
-            o.rotation.y += o.userData.gira * 0.7;
-          }
+        fragmentos.forEach((f) => {
+          f.position.y += Math.sin(t * 0.3 + f.userData.fase) * 0.002;
+          f.rotation.x += f.userData.gira;
+          f.rotation.y += f.userData.gira * 0.7;
         });
       }
       matPoeira.uniforms.tempo.value = t;
       matBrasa.uniforms.tempo.value = t;
       nucleo.material.opacity = 0.75 + 0.25 * Math.sin(t * 1.3);
-      metrito.intensity = 11 + 3 * Math.sin(t * 1.3);
-      if (matTerreno?.emissiveMap) matTerreno.emissiveIntensity = 0.75 + 0.25 * Math.sin(t * 1.3);
+      metrito.intensity = 13 + 4 * Math.sin(t * 1.3);
+      if (matTerreno) matTerreno.emissiveIntensity = 0.9 + 0.3 * Math.sin(t * 1.3);
       grupoEscolas.children.forEach((o) => {
         if (o.material?.uniforms?.tempo) o.material.uniforms.tempo.value = t + o.position.x;
       });
@@ -613,7 +512,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         palco.style.cursor = hit ? "pointer" : arrastando ? "grabbing" : "grab";
       }
       alvosClique.forEach((a) => {
-        const alvoEscala = a === foco ? 2.1 : 1.4;
+        const alvoEscala = a === foco ? 1.9 : 1.2;
         const s = a.userData.luz.scale.x;
         a.userData.luz.scale.setScalar(s + (alvoEscala - s) * 0.15);
       });
@@ -676,7 +575,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     mundoRef.current = { montarEscolas };
     let fechado = false;
     carregarRelevo()
-      .catch(() => ({ altura, brilho: () => 0, imagens: false }))
+      .catch(() => ({ altura: () => 0, brilho: () => 0 }))
       .then((r) => {
         if (!fechado) montarTerreno(r);
       });
@@ -698,7 +597,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       palco.removeEventListener("pointerleave", aoSair);
       document.removeEventListener("visibilitychange", tocar);
       scene.traverse((o) => {
-        o.geometry?.dispose();
+        if (!lixo.includes(o.geometry)) o.geometry?.dispose();
         if (o.material && !lixo.includes(o.material)) o.material.dispose?.();
       });
       lixo.forEach((o) => o.dispose?.());

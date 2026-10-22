@@ -1,0 +1,10 @@
+{
+  "km": 38.75,
+  "altitude_min": 225.5,
+  "altitude_max": 620.3,
+  "centro": [
+    0.5166,
+    0.5056
+  ],
+  "raio_anel": 0.0215
+}
