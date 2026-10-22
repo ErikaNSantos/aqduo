@@ -5,6 +5,7 @@ import { feature } from "topojson-client";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import MundoOrdem from "./MundoOrdem";
+import urlEmblema from "../assets/emblema.png";
 
 const GEO_URL =
   "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -306,7 +307,7 @@ export default function TelaInicial({ onEntrar }) {
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div style={s.navLogo}>
-          <div style={s.logo}>⚔</div>
+          <img src={urlEmblema} alt="" style={s.logoImg} />
           <div>
             <div style={s.navTitulo}>A QUEDA DE UMA ORDEM</div>
             <div style={s.navSub}>O DESPERTAR DOS SCRIPS</div>
@@ -901,6 +902,7 @@ const s = {
     backdropFilter: "blur(12px)",
   },
   navLogo: { display: "flex", alignItems: "center", gap: 12 },
+  logoImg: { height: 44, width: "auto", display: "block" },
   logo: {
     width: 38,
     height: 38,

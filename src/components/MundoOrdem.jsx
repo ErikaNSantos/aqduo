@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import urlAltura from "../assets/terreno/altura.png";
+import urlCor from "../assets/terreno/cor.jpg";
+import urlBrilho from "../assets/terreno/brilho.png";
+import urlEmblema from "../assets/emblema.png";
 
 // ─────────────────────────────────────────────
-// MUNDO 3D DA ABERTURA — o Terreno Suspenso da cratera
-// Uma ilha flutuante formada pelos anéis da cratera do meteoro, com o Metrito
-// pulsando no centro e as escolas da Ordem como luzes nos anéis.
+// MUNDO 3D DA ABERTURA — o Terreno Suspenso do emblema
+// Uma ilha flutuante cujo relevo sai de src/assets/terreno/altura.png, gerado a
+// partir do emblema dos Scrips (scripts/gerar_terreno.py). O emblema brilha como
+// Metrito no meio de um lago, e as escolas da Ordem são luzes nas montanhas.
 // Rolar move a câmera; arrastar gira a ilha; clicar numa luz abre a escola.
 // ─────────────────────────────────────────────
 
@@ -66,11 +71,54 @@ function altura(x, z) {
   return h * borda - (1 - borda) * 0.6;
 }
 
+const NIVEL_AGUA = 0.33; // altura da imagem (0 a 1) que vira o nível do lago
+const ESCALA_ALTURA = 5.5;
+
+/** Lê as imagens do terreno e devolve funções de altura e brilho em coordenadas do mundo. */
+function carregarRelevo() {
+  const ler = (url) =>
+    new Promise((ok, erro) => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement("canvas");
+        c.width = img.width;
+        c.height = img.height;
+        const ctx = c.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const px = ctx.getImageData(0, 0, c.width, c.height).data;
+        const v = new Float32Array(c.width * c.height);
+        for (let i = 0; i < v.length; i++) v[i] = px[i * 4] / 255;
+        ok({ v, w: c.width, h: c.height });
+      };
+      img.onerror = erro;
+      img.src = url;
+    });
+  const amostra = ({ v, w, h }, x, z) => {
+    const u = Math.min(w - 1.001, Math.max(0, ((x / RAIO_ILHA + 1) / 2) * (w - 1)));
+    const t = Math.min(h - 1.001, Math.max(0, ((z / RAIO_ILHA + 1) / 2) * (h - 1)));
+    const x0 = Math.floor(u);
+    const y0 = Math.floor(t);
+    const fx = u - x0;
+    const fy = t - y0;
+    const a = v[y0 * w + x0];
+    const b = v[y0 * w + x0 + 1];
+    const c = v[(y0 + 1) * w + x0];
+    const d = v[(y0 + 1) * w + x0 + 1];
+    return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
+  };
+  return Promise.all([ler(urlAltura), ler(urlBrilho)]).then(([alt, bri]) => ({
+    altura: (x, z) => (amostra(alt, x, z) - NIVEL_AGUA) * ESCALA_ALTURA,
+    brilho: (x, z) => amostra(bri, x, z),
+    imagens: true,
+  }));
+}
+
 /** Malha radial da ilha, com cor por altura e inclinação. */
-function malhaIlha(aneisMalha, setores) {
+function malhaIlha(aneisMalha, setores, altura) {
   const pos = [];
   const cor = [];
   const idx = [];
+  const uv = [];
   const rocha = new THREE.Color("#2b3d47");
   const pedraAlta = new THREE.Color("#6a8796");
   const musgo = new THREE.Color("#2c5244");
@@ -84,6 +132,7 @@ function malhaIlha(aneisMalha, setores) {
       const z = Math.sin(a) * r;
       const y = altura(x, z);
       pos.push(x, y, z);
+      uv.push((x / RAIO_ILHA + 1) / 2, 1 - (z / RAIO_ILHA + 1) / 2);
       const inclin = Math.abs(altura(x + 0.08, z) - y) + Math.abs(altura(x, z + 0.08) - y);
       c.copy(vale).lerp(rocha, suave(-0.4, 0.3, y)).lerp(pedraAlta, suave(0.7, 1.5, y));
       if (inclin < 0.035 && y > 0.2) c.lerp(musgo, 0.55);
@@ -102,18 +151,19 @@ function malhaIlha(aneisMalha, setores) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute("color", new THREE.Float32BufferAttribute(cor, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   geo.setIndex(idx);
   geo.computeVertexNormals();
   return geo;
 }
 
 /** Base de rocha pendurada sob a ilha (é o que faz ela flutuar). */
-function malhaBase(raio, fundo, semente) {
+function malhaBase(raio, fundo, semente, topo = -0.55) {
   const perfil = [];
   for (let i = 0; i <= 24; i++) {
     const t = i / 24;
     const r = raio * (1 - Math.pow(t, 0.7)) + 0.15;
-    perfil.push(new THREE.Vector2(r, -0.55 - t * fundo));
+    perfil.push(new THREE.Vector2(r, topo - t * fundo));
   }
   const geo = new THREE.LatheGeometry(perfil, 96);
   const p = geo.attributes.position;
@@ -298,13 +348,11 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     metrito.position.set(0, 0.2, 0);
     scene.add(metrito);
 
-    // A ilha e as ilhas menores ao longe
+    // A ilha (montada quando as imagens do terreno chegam) e as ilhas menores ao longe
     const ilha = new THREE.Group();
     scene.add(ilha);
-    const matRocha = g(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0.05 }));
-    ilha.add(new THREE.Mesh(g(malhaIlha(estreito ? 70 : 120, estreito ? 180 : 300)), matRocha));
+    const matRocha = g(new THREE.MeshStandardMaterial({ color: "#24343c", roughness: 0.92, metalness: 0.05 }));
     const matBase = g(new THREE.MeshStandardMaterial({ color: "#141d22", roughness: 1, flatShading: true }));
-    ilha.add(new THREE.Mesh(g(malhaBase(RAIO_ILHA, 7, 3.1)), matBase));
 
     const satelites = [
       [-17, -2.5, -9, 1.6],
@@ -338,37 +386,73 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       scene.add(n);
     }
 
-    // Poeira de Metrito nos vales entre os anéis
-    const poeira = [];
-    const fases = [];
-    const cores = [];
-    const sobe = [];
-    const ouro = new THREE.Color(OURO);
-    for (let k = 0; k < 2600; k++) {
-      const a = Math.random() * Math.PI * 2;
-      const r = 0.3 + Math.random() * 8.2;
-      const x = Math.cos(a) * r;
-      const z = Math.sin(a) * r;
-      const h = altura(x, z);
-      if (h > 0.55 && r > 1.4) continue;
-      poeira.push(x, h + 0.06, z);
-      fases.push(Math.random());
-      const k2 = r < 1.4 ? 1 : 0.55;
-      cores.push(ouro.r * k2, ouro.g * k2, ouro.b * k2);
-      sobe.push(r < 1.2 ? 0.6 : 0);
-    }
-    const geoPoeira = g(new THREE.BufferGeometry());
-    geoPoeira.setAttribute("position", new THREE.Float32BufferAttribute(poeira, 3));
-    geoPoeira.setAttribute("fase", new THREE.Float32BufferAttribute(fases, 1));
-    geoPoeira.setAttribute("cor", new THREE.Float32BufferAttribute(cores, 3));
-    geoPoeira.setAttribute("sobe", new THREE.Float32BufferAttribute(sobe, 1));
+    // Terreno, lago, poeira de Metrito sobre o emblema e o brilho da estrela
     const matPoeira = g(matCintilante(26));
-    ilha.add(new THREE.Points(geoPoeira, matPoeira));
-
     const nucleo = new THREE.Sprite(g(new THREE.SpriteMaterial({ map: brilho, color: OURO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })));
-    nucleo.position.set(0, altura(0, 0) + 0.25, 0);
-    nucleo.scale.setScalar(2.2);
-    ilha.add(nucleo);
+    nucleo.scale.setScalar(2.4);
+    let matTerreno = null;
+    let relevo = null;
+
+    function montarTerreno(r) {
+      relevo = r;
+      const carregador = new THREE.TextureLoader();
+      const cor = r.imagens ? g(carregador.load(urlCor)) : null;
+      const luzEmblema = r.imagens ? g(carregador.load(urlBrilho)) : null;
+      if (cor) cor.colorSpace = THREE.SRGBColorSpace;
+      matTerreno = g(
+        new THREE.MeshStandardMaterial({
+          map: cor,
+          vertexColors: !cor,
+          emissive: "#c9952f",
+          emissiveMap: luzEmblema,
+          emissiveIntensity: luzEmblema ? 0.8 : 0,
+          roughness: 0.9,
+          metalness: 0.05,
+        }),
+      );
+      ilha.add(new THREE.Mesh(g(malhaIlha(estreito ? 110 : 180, estreito ? 180 : 300, r.altura)), matTerreno));
+      const borda = r.altura(RAIO_ILHA, 0);
+      ilha.add(new THREE.Mesh(g(malhaBase(RAIO_ILHA * 1.01, 7, 3.1, borda + 0.1)), matBase));
+
+      if (r.imagens) {
+        const lago = new THREE.Mesh(
+          g(new THREE.CircleGeometry(RAIO_ILHA * 0.97, 128)),
+          g(new THREE.MeshBasicMaterial({ color: "#071116", transparent: true, opacity: 0.86 })),
+        );
+        lago.rotation.x = -Math.PI / 2;
+        lago.position.y = 0.02;
+        ilha.add(lago);
+      }
+
+      const pos = [];
+      const fases = [];
+      const cores = [];
+      const sobe = [];
+      const ouro = new THREE.Color(OURO);
+      for (let k = 0; k < 9000 && pos.length < 2400 * 3; k++) {
+        const x = (Math.random() * 2 - 1) * RAIO_ILHA * 0.8;
+        const z = (Math.random() * 2 - 1) * RAIO_ILHA * 0.8;
+        const b = r.brilho(x, z);
+        if (b < 0.35) continue;
+        pos.push(x, Math.max(r.altura(x, z), 0) + 0.05, z);
+        fases.push(Math.random());
+        cores.push(ouro.r * b, ouro.g * b, ouro.b * b);
+        sobe.push(Math.random() < 0.35 ? 0.4 : 0);
+      }
+      const geo = g(new THREE.BufferGeometry());
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      geo.setAttribute("fase", new THREE.Float32BufferAttribute(fases, 1));
+      geo.setAttribute("cor", new THREE.Float32BufferAttribute(cores, 3));
+      geo.setAttribute("sobe", new THREE.Float32BufferAttribute(sobe, 1));
+      ilha.add(new THREE.Points(geo, matPoeira));
+
+      // A estrela do emblema fica um pouco acima do centro da imagem
+      const zEstrela = r.imagens ? -1.1 : 0;
+      nucleo.position.set(0, Math.max(r.altura(0, zEstrela), 0) + 0.3, zEstrela);
+      metrito.position.set(0, nucleo.position.y + 0.4, zEstrela);
+      ilha.add(nucleo);
+      montarEscolas(escolasPendentes);
+    }
 
     // Escolas: colunas de luz nos anéis
     const grupoEscolas = new THREE.Group();
@@ -377,7 +461,10 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     const matBrasa = g(matCintilante(34));
     let brasas = null;
 
+    let escolasPendentes = [];
     function montarEscolas(lista) {
+      escolasPendentes = lista;
+      if (!relevo) return;
       grupoEscolas.clear();
       alvosClique.length = 0;
       if (brasas) {
@@ -385,17 +472,17 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         brasas.geometry.dispose();
         brasas = null;
       }
-      const raios = [4.9, 7.1];
+      const raios = [7.3, 7.6];
       const pBrasa = [];
       const fBrasa = [];
       const cBrasa = [];
       const sBrasa = [];
       lista.forEach((e, i) => {
-        const ang = (i / lista.length) * Math.PI * 2 + 0.55;
+        const ang = (i / lista.length) * Math.PI * 2 + Math.PI / 4;
         const r = raios[i % 2];
         const x = Math.cos(ang) * r;
         const z = Math.sin(ang) * r;
-        const y = Math.max(altura(x, z), 0.3);
+        const y = Math.max(relevo.altura(x, z), 0.3);
         const cor = new THREE.Color(e.cor || OURO);
 
         const feixe = new THREE.Mesh(
@@ -466,8 +553,8 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     function posicionarCamera(t) {
       const p = progressoSuave;
       const dist = THREE.MathUtils.lerp(estreito ? 30 : 24, estreito ? 17 : 13.5, p);
-      const polar = THREE.MathUtils.lerp(0.8, 1.32, p);
-      const azim = -0.9 + p * 1.1 + giro + (reduz ? 0 : t * 0.025);
+      const polar = THREE.MathUtils.lerp(0.55, 1.25, p);
+      const azim = -0.15 + p * 0.9 + giro + (reduz ? 0 : t * 0.02);
       camera.position.set(Math.sin(polar) * Math.sin(azim) * dist, Math.cos(polar) * dist + 1, Math.sin(polar) * Math.cos(azim) * dist);
       camera.lookAt(0, THREE.MathUtils.lerp(-0.5, 0.6, p), 0);
     }
@@ -509,6 +596,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
       matBrasa.uniforms.tempo.value = t;
       nucleo.material.opacity = 0.75 + 0.25 * Math.sin(t * 1.3);
       metrito.intensity = 11 + 3 * Math.sin(t * 1.3);
+      if (matTerreno?.emissiveMap) matTerreno.emissiveIntensity = 0.75 + 0.25 * Math.sin(t * 1.3);
       grupoEscolas.children.forEach((o) => {
         if (o.material?.uniforms?.tempo) o.material.uniforms.tempo.value = t + o.position.x;
       });
@@ -581,6 +669,12 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     document.addEventListener("visibilitychange", tocar);
 
     mundoRef.current = { montarEscolas };
+    let fechado = false;
+    carregarRelevo()
+      .catch(() => ({ altura, brilho: () => 0, imagens: false }))
+      .then((r) => {
+        if (!fechado) montarTerreno(r);
+      });
     enquadrar();
     lerScroll();
     progressoSuave = progresso;
@@ -588,6 +682,7 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
     tocar();
 
     return () => {
+      fechado = true;
       cancelAnimationFrame(quadro);
       ro.disconnect();
       io.disconnect();
@@ -655,14 +750,9 @@ export default function MundoOrdem({ escolas = [], onEscola, children }) {
         </button>
         {!entrou && (
           <div style={st.portao}>
-            <svg viewBox="0 0 200 200" style={st.emblema} aria-hidden="true">
-              {ANEIS.map((a, i) => (
-                <circle key={i} cx="100" cy="100" r={a.r * 11} fill="none" stroke="#c4a050" strokeOpacity={0.25 + i * 0.1} strokeWidth="0.8" strokeDasharray={`${40 + i * 18} ${8 + i * 4}`} />
-              ))}
-              <circle cx="100" cy="100" r="5" fill="#e8c96a" fillOpacity="0.8" />
-            </svg>
+            <img src={urlEmblema} alt="Emblema dos Scrips" style={st.emblema} />
             <p style={st.portaoTitulo}>A QUEDA DE UMA ORDEM</p>
-            <p style={st.portaoFrase}>“Esqueça tudo o que acredita saber. O que vou te revelar... muda tudo.”</p>
+            <p style={st.portaoFrase}>Diferentes por natureza. Unidos pela mesma origem.</p>
             <div style={st.portaoBotoes}>
               <button type="button" style={st.portaoBotao} onClick={() => entrar(true)}>
                 ENTRAR COM SOM
@@ -756,7 +846,7 @@ const st = {
     padding: "24px",
     textAlign: "center",
   },
-  emblema: { width: "min(260px, 60vw)", height: "auto", marginBottom: 8 },
+  emblema: { height: "min(320px, 42vh)", width: "auto", marginBottom: 4 },
   portaoTitulo: { margin: 0, letterSpacing: "6px", fontSize: "0.9em", color: "#e8d08a" },
   portaoFrase: { margin: 0, maxWidth: 420, fontStyle: "italic", color: "#8a7a55", fontSize: "0.95em", lineHeight: 1.6 },
   portaoBotoes: { display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginTop: 18 },
