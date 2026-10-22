@@ -66,7 +66,7 @@ body {
   width: 100%;
   min-height: 100vh;
   background-color: #1a1a1a; /* Uma cor de fundo escura padrão */
-  overflow-x: hidden; /* Evita a barra de rolagem horizontal chata */
+  overflow-x: clip; /* Evita a barra de rolagem horizontal sem quebrar o position: sticky */
 }
 
 /* Força a raiz do React a ocupar a tela toda */

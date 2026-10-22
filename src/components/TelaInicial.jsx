@@ -4,7 +4,7 @@ import { geoMercator, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
-import CenaQueda from "./CenaQueda";
+import MundoOrdem from "./MundoOrdem";
 
 const GEO_URL =
   "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -315,10 +315,8 @@ export default function TelaInicial({ onEntrar }) {
         <BotaoDourado onClick={onEntrar}>ENTRAR NA ORDEM</BotaoDourado>
       </motion.nav>
 
-      {/* ── HERO — a queda do meteoro em 3D, com o título por cima ── */}
-      <section style={s.heroCena}>
-        <CenaQueda paises={paises} escolas={escolas} />
-        <div style={s.heroDegrade} />
+      {/* ── HERO — o Terreno Suspenso em 3D, com o título por cima ── */}
+      <MundoOrdem escolas={escolas} onEscola={setEscolaAtiva}>
         <motion.div
           ref={heroRef}
           style={s.hero}
@@ -330,8 +328,15 @@ export default function TelaInicial({ onEntrar }) {
           <p style={s.heroEyebrow}>O DESPERTAR DOS SCRIPS</p>
           <h1 style={s.heroTitulo}>A ORDEM CAIU.</h1>
           <p style={s.heroSub}>Seu despertar começa aqui.</p>
+          <button
+            type="button"
+            style={s.heroBotao}
+            onClick={() => escolasRef.current?.scrollIntoView({ behavior: "smooth" })}
+          >
+            CONHECER AS ESCOLAS
+          </button>
         </motion.div>
-      </section>
+      </MundoOrdem>
 
       <div style={s.pagina}>
 
@@ -859,7 +864,7 @@ const s = {
     width: "100%",
     background: "#070906",
     position: "relative",
-    overflow: "hidden",
+    overflow: "clip",
     fontFamily: "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
     color: "#c4a050",
   },
@@ -942,24 +947,21 @@ const s = {
     flexDirection: "column",
     gap: 72,
   },
-  heroCena: {
-    position: "relative",
-    zIndex: 2,
-    height: "clamp(520px, 88vh, 860px)",
-    overflow: "hidden",
-  },
-  heroDegrade: {
-    position: "absolute",
-    inset: "auto 0 0 0",
-    height: "28%",
-    background: "linear-gradient(to bottom, rgba(7,9,6,0) 0%, #070906 100%)",
-    pointerEvents: "none",
-  },
   hero: {
-    position: "relative",
-    textAlign: "center",
-    padding: "clamp(48px, 9vh, 96px) 24px 0",
-    pointerEvents: "none",
+    textAlign: "left",
+  },
+  heroBotao: {
+    marginTop: 28,
+    pointerEvents: "auto",
+    padding: "11px 22px",
+    background: "rgba(6,9,12,0.45)",
+    border: "1px solid rgba(196,160,80,0.45)",
+    borderRadius: 3,
+    color: "#e8d08a",
+    letterSpacing: "3px",
+    fontSize: "0.68em",
+    cursor: "pointer",
+    fontFamily: "inherit",
   },
   heroEyebrow: {
     margin: "0 0 12px",
@@ -970,7 +972,7 @@ const s = {
   },
   heroTitulo: {
     margin: "0 0 10px",
-    fontSize: "clamp(2.2em, 7vw, 3.8em)",
+    fontSize: "clamp(2.2em, 6vw, 3.6em)",
     fontWeight: 700,
     color: "#e8d08a",
     lineHeight: 1.1,
