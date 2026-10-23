@@ -5,6 +5,7 @@ import TelaInicial from "./components/TelaInicial";
 import Auth from "./components/Auth";
 //import Dashboard from "./components/Dashboard";
 import PainelPrincipal from "./components/PainelPrincipal";
+import PrototipoArvore from "./components/PrototipoArvore";
 
 function App() {
   const [session, setSession] = useState(null);
@@ -70,6 +71,7 @@ function App() {
           )
         }
       />
+      <Route path="/prototipo/arvore" element={<PrototipoArvore />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
