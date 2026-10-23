@@ -372,25 +372,17 @@ export default function CriarFicha({
           padding: "20px",
         }}
       >
-        {/* Título com Skew (Seu Layout Original) */}
-        <div
-          style={{
-            display: "inline-block",
-            background: "#ff0000",
-            padding: "10px 30px",
-            transform: "skew(-5deg)",
-            marginBottom: "40px",
-            boxShadow: "0 4px 15px rgba(255,0,0,0.3)",
-          }}
-        >
+        {/* Título */}
+        <div style={{ marginBottom: "36px" }}>
           <h1
             style={{
               margin: 0,
-              color: "#fff",
-              fontSize: "2.2em",
+              color: "#e8d08a",
+              fontSize: "clamp(1.6em, 5vw, 2.2em)",
+              fontWeight: 400,
               textTransform: "uppercase",
-              transform: "skew(5deg)",
-              letterSpacing: "2px",
+              letterSpacing: "6px",
+              textShadow: "0 2px 24px rgba(232,208,138,0.25)",
             }}
           >
             Quem é você?
@@ -398,7 +390,7 @@ export default function CriarFicha({
         </div>
 
         {carregando ? (
-          <p style={{ color: "#4CAF50" }}>Consultando registros da Ordem...</p>
+          <p style={{ color: "#9aa7ae" }}>Consultando registros da Ordem...</p>
         ) : (
           <div
             style={{
@@ -421,7 +413,7 @@ export default function CriarFicha({
                   border: `2px solid ${coresCards[index % coresCards.length]}`,
                   background: l.imagem_url
                     ? `linear-gradient(to top, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0.2) 100%), url(${l.imagem_url})`
-                    : "#000",
+                    : "radial-gradient(ellipse at 50% 30%, #18232c 0%, #0a0f14 75%)",
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                   cursor: "pointer",
@@ -460,7 +452,7 @@ export default function CriarFicha({
 
                   <h3
                     style={{
-                      color: "#fff",
+                      color: "#efe6cf",
                       margin: "5px 0",
                       fontSize: "1.8em",
                       textTransform: "uppercase",
@@ -472,7 +464,7 @@ export default function CriarFicha({
 
                   <p
                     style={{
-                      color: "#4CAF50",
+                      color: "#e8d08a",
                       fontSize: "0.85em",
                       marginBottom: "12px",
                       fontWeight: "bold",
@@ -486,7 +478,7 @@ export default function CriarFicha({
 
                   <p
                     style={{
-                      color: "#ccc",
+                      color: "#cfc6b0",
                       fontSize: "0.85em",
                       lineHeight: "1.4",
                       margin: 0,
@@ -597,7 +589,7 @@ export default function CriarFicha({
               </span>
               <h2
                 style={{
-                  color: "#fff",
+                  color: "#efe6cf",
                   fontSize: "2.5em",
                   margin: "5px 0",
                   textTransform: "uppercase",
@@ -607,7 +599,7 @@ export default function CriarFicha({
               </h2>
               <p
                 style={{
-                  color: "#4CAF50",
+                  color: "#e8d08a",
                   fontSize: "0.85em",
                   fontWeight: "bold",
                 }}
@@ -628,7 +620,7 @@ export default function CriarFicha({
                 style={{
                   fontSize: "2.5em",
                   fontWeight: "900",
-                  color: pontosRestantes >= 0 ? "#4CAF50" : "#f44336",
+                  color: pontosRestantes >= 0 ? "#7fb069" : "#e08878",
                 }}
               >
                 {pontosRestantes}
@@ -636,8 +628,8 @@ export default function CriarFicha({
               <span
                 style={{
                   display: "block",
-                  fontSize: "0.65em",
-                  color: "#888",
+                  fontSize: "0.74em",
+                  color: "#9aa7ae",
                   textTransform: "uppercase",
                 }}
               >
@@ -647,8 +639,8 @@ export default function CriarFicha({
                 <span
                   style={{
                     display: "block",
-                    fontSize: "0.6em",
-                    color: "#aaa",
+                    fontSize: "0.74em",
+                    color: "#b8ae96",
                     marginTop: "6px",
                   }}
                 >
@@ -658,6 +650,7 @@ export default function CriarFicha({
             </div>
           </div>
           <div
+            className="duas-colunas"
             style={{
               display: "grid",
               gridTemplateColumns: "1.2fr 1.8fr",
@@ -699,7 +692,7 @@ export default function CriarFicha({
                       borderRadius: "50%",
                       background: fotoPersonagem
                         ? `url(${fotoPersonagem}) center/cover`
-                        : "#111",
+                        : "rgba(12,17,22,0.85)",
                       border: fotoPersonagem
                         ? "none"
                         : `2px dashed ${corLinhagem}`,
@@ -713,8 +706,8 @@ export default function CriarFicha({
                     {!fotoPersonagem && (
                       <span
                         style={{
-                          color: "#fff",
-                          fontSize: "0.6em",
+                          color: "#efe6cf",
+                          fontSize: "0.74em",
                           opacity: 0.5,
                         }}
                       >
@@ -734,7 +727,7 @@ export default function CriarFicha({
                   <div style={{ display: "flex", flexDirection: "column" }}>
                     <label
                       style={{
-                        color: "#888",
+                        color: "#9aa7ae",
                         fontSize: "0.7em",
                         marginBottom: "5px",
                         textTransform: "uppercase",
@@ -753,7 +746,7 @@ export default function CriarFicha({
                         borderBottom: `2px solid ${corLinhagem}55`,
                         padding: "10px",
                         borderRadius: "4px",
-                        color: "#fff",
+                        color: "#efe6cf",
                       }}
                     />
                   </div>
@@ -767,7 +760,7 @@ export default function CriarFicha({
                     >
                       <label
                         style={{
-                          color: "#888",
+                          color: "#9aa7ae",
                           fontSize: "0.7em",
                           marginBottom: "5px",
                           textTransform: "uppercase",
@@ -786,7 +779,7 @@ export default function CriarFicha({
                           borderBottom: `2px solid ${corLinhagem}33`,
                           padding: "10px",
                           borderRadius: "4px",
-                          color: "#ccc",
+                          color: "#cfc6b0",
                         }}
                       />
                     </div>
@@ -799,7 +792,7 @@ export default function CriarFicha({
                     >
                       <label
                         style={{
-                          color: "#888",
+                          color: "#9aa7ae",
                           fontSize: "0.7em",
                           marginBottom: "5px",
                           textTransform: "uppercase",
@@ -818,7 +811,7 @@ export default function CriarFicha({
                           borderBottom: `2px solid ${corLinhagem}33`,
                           padding: "10px",
                           borderRadius: "4px",
-                          color: "#ccc",
+                          color: "#cfc6b0",
                         }}
                       />
                     </div>
@@ -831,7 +824,7 @@ export default function CriarFicha({
                 style={{
                   background: "rgba(0,0,0,0.4)",
                   borderRadius: "15px",
-                  border: "1px solid #222",
+                  border: "1px solid rgba(232,208,138,0.15)",
                   overflow: "hidden",
                   flex: 1,
                   display: "flex",
@@ -855,7 +848,7 @@ export default function CriarFicha({
                           abaAtiva === aba
                             ? "rgba(255,255,255,0.05)"
                             : "transparent",
-                        color: abaAtiva === aba ? corLinhagem : "#666",
+                        color: abaAtiva === aba ? corLinhagem : "#7d8a92",
                         border: "none",
                         borderBottom:
                           abaAtiva === aba
@@ -898,7 +891,7 @@ export default function CriarFicha({
                     background: "transparent",
                     border: "none",
                     padding: "20px",
-                    color: "#ccc",
+                    color: "#cfc6b0",
                     resize: "none",
                     outline: "none",
                     lineHeight: "1.6",
@@ -909,7 +902,7 @@ export default function CriarFicha({
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <label
                   style={{
-                    color: "#888",
+                    color: "#9aa7ae",
                     fontSize: "0.7em",
                     marginBottom: "5px",
                     textTransform: "uppercase",
@@ -928,7 +921,7 @@ export default function CriarFicha({
                     borderBottom: `2px solid ${corLinhagem}55`,
                     padding: "10px",
                     borderRadius: "4px",
-                    color: "#fff",
+                    color: "#efe6cf",
                     resize: "none",
                     outline: "none",
                     lineHeight: "1.5",
@@ -946,6 +939,7 @@ export default function CriarFicha({
             >
               {/* ATRIBUTOS SECUNDÁRIOS */}
               <div
+                className="tres-colunas"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(3, 1fr)",
@@ -956,12 +950,12 @@ export default function CriarFicha({
                   { label: "Vida (PV)", val: pv, color: "#f44336" },
                   { label: "Fadiga (PF)", val: pfMax, color: "#2196f3" },
                   { label: "Esquiva", val: esquiva, color: "#ff9800" },
-                  { label: "Vontade", val: vontade, color: "#9c27b0" },
+                  { label: "Vontade", val: vontade, color: "#c07ad8" },
                   { label: "Percepção", val: percepcao, color: "#ffeb3b" },
                   {
                     label: "Velocidade",
                     val: velocidadeBasica.toFixed(2),
-                    color: "#4caf50",
+                    color: "#e8d08a",
                   },
                 ].map((stat) => (
                   <div
@@ -977,8 +971,8 @@ export default function CriarFicha({
                     <span
                       style={{
                         display: "block",
-                        fontSize: "0.6em",
-                        color: "#888",
+                        fontSize: "0.74em",
+                        color: "#9aa7ae",
                         textTransform: "uppercase",
                       }}
                     >
@@ -988,7 +982,7 @@ export default function CriarFicha({
                       style={{
                         fontSize: "1.3em",
                         fontWeight: "bold",
-                        color: "#fff",
+                        color: "#efe6cf",
                       }}
                     >
                       {stat.val}
@@ -1012,13 +1006,13 @@ export default function CriarFicha({
                       background: "rgba(255,255,255,0.03)",
                       padding: "15px",
                       borderRadius: "12px",
-                      border: "1px solid #333",
+                      border: "1px solid rgba(232,208,138,0.15)",
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
                     }}
                   >
-                    <span style={{ color: "#fff", fontWeight: "bold" }}>
+                    <span style={{ color: "#efe6cf", fontWeight: "bold" }}>
                       {sigla}
                     </span>
                     <div
@@ -1031,8 +1025,8 @@ export default function CriarFicha({
                       <button
                         onClick={() => alterarAtributo(sigla, -1)}
                         style={{
-                          background: "#222",
-                          color: "#fff",
+                          background: "#1a242c",
+                          color: "#efe6cf",
                           border: "1px solid #444",
                           padding: "5px 12px",
                           borderRadius: "4px",
@@ -1076,7 +1070,7 @@ export default function CriarFicha({
                 style={{
                   background: "rgba(0,0,0,0.4)",
                   borderRadius: "15px",
-                  border: "1px solid #222",
+                  border: "1px solid rgba(232,208,138,0.15)",
                   padding: "20px",
                   display: "flex",
                   flexDirection: "column",
@@ -1085,13 +1079,13 @@ export default function CriarFicha({
                 <div
                   style={{
                     marginBottom: "15px",
-                    borderBottom: "1px solid #333",
+                    borderBottom: "1px solid rgba(232,208,138,0.15)",
                     paddingBottom: "10px",
                   }}
                 >
                   <h3
                     style={{
-                      color: "#888",
+                      color: "#9aa7ae",
                       fontSize: "0.75em",
                       textTransform: "uppercase",
                       margin: 0,
@@ -1141,22 +1135,22 @@ export default function CriarFicha({
                         >
                           <span
                             style={{
-                              color: isSelecionada ? "#fff" : "#ccc",
+                              color: isSelecionada ? "#efe6cf" : "#cfc6b0",
                               fontWeight: "bold",
                               fontSize: "0.85em",
                             }}
                           >
                             {apt.nome}
                           </span>
-                          <span style={{ color: "#666", fontSize: "0.7em" }}>
+                          <span style={{ color: "#b8ae96", fontSize: "0.7em" }}>
                             {apt.descricao}
                           </span>
                         </div>
                         {custoPh != null && Number(custoPh) > 0 && (
                           <div
                             style={{
-                              background: isSelecionada ? corLinhagem : "#222",
-                              color: isSelecionada ? "#000" : "#888",
+                              background: isSelecionada ? corLinhagem : "#1a242c",
+                              color: isSelecionada ? "#000" : "#9aa7ae",
                               padding: "4px 8px",
                               borderRadius: "4px",
                               fontSize: "0.8em",
@@ -1176,7 +1170,7 @@ export default function CriarFicha({
                   listaAptidoesDisponiveis.length === 0 && (
                     <p
                       style={{
-                        color: "#888",
+                        color: "#9aa7ae",
                         fontSize: "0.8em",
                         margin: "10px 0 0 0",
                         textAlign: "center",
@@ -1193,7 +1187,7 @@ export default function CriarFicha({
                 style={{
                   background: "rgba(0,0,0,0.4)",
                   borderRadius: "15px",
-                  border: "1px solid #222",
+                  border: "1px solid rgba(232,208,138,0.15)",
                   padding: "20px",
                   flex: 1,
                   display: "flex",
@@ -1206,13 +1200,13 @@ export default function CriarFicha({
                     justifyContent: "space-between",
                     alignItems: "center",
                     marginBottom: "15px",
-                    borderBottom: "1px solid #333",
+                    borderBottom: "1px solid rgba(232,208,138,0.15)",
                     paddingBottom: "10px",
                   }}
                 >
                   <h3
                     style={{
-                      color: "#888",
+                      color: "#9aa7ae",
                       fontSize: "0.75em",
                       textTransform: "uppercase",
                       margin: 0,
@@ -1270,21 +1264,21 @@ export default function CriarFicha({
                         >
                           <span
                             style={{
-                              color: isSelecionada ? "#fff" : "#ccc",
+                              color: isSelecionada ? "#efe6cf" : "#cfc6b0",
                               fontWeight: "bold",
                               fontSize: "0.85em",
                             }}
                           >
                             {sequela.nome}
                           </span>
-                          <span style={{ color: "#666", fontSize: "0.7em" }}>
+                          <span style={{ color: "#b8ae96", fontSize: "0.7em" }}>
                             {sequela.descricao}
                           </span>
                         </div>
                         <div
                           style={{
-                            background: isSelecionada ? corLinhagem : "#222",
-                            color: isSelecionada ? "#000" : "#888",
+                            background: isSelecionada ? corLinhagem : "#1a242c",
+                            color: isSelecionada ? "#000" : "#9aa7ae",
                             padding: "4px 8px",
                             borderRadius: "4px",
                             fontSize: "0.8em",
@@ -1335,7 +1329,7 @@ export default function CriarFicha({
                   style={{
                     background: "transparent",
                     border: "none",
-                    color: "#888",
+                    color: "#9aa7ae",
                     cursor: "pointer",
                     fontSize: "0.8em",
                     textTransform: "uppercase",
@@ -1444,7 +1438,7 @@ export default function CriarFicha({
                 fontFamily: "'EB Garamond', 'Palatino Linotype', serif",
                 fontSize: "1.6em",
                 fontWeight: 700,
-                color: "#e8e4dc",
+                color: "#efe6cf",
                 letterSpacing: "3px",
                 textTransform: "uppercase",
               }}
@@ -1456,7 +1450,7 @@ export default function CriarFicha({
                 margin: "8px 0 0",
                 fontFamily: "'Crimson Pro', 'Palatino Linotype', serif",
                 fontSize: "0.85em",
-                color: "#5a5040",
+                color: "#9aa7ae",
                 lineHeight: 1.6,
                 maxWidth: "460px",
                 marginLeft: "auto",
@@ -1471,7 +1465,7 @@ export default function CriarFicha({
           {/* CARD PRINCIPAL */}
           <div
             style={{
-              background: "rgba(10,12,6,0.88)",
+              background: "rgba(12,17,22,0.88)",
               border: `1px solid ${corLinhagem}25`,
               borderRadius: "9px",
               padding: "32px 28px",
@@ -1486,7 +1480,7 @@ export default function CriarFicha({
               <label
                 style={{
                   display: "block",
-                  fontSize: "0.6em",
+                  fontSize: "0.74em",
                   fontWeight: 700,
                   letterSpacing: "2.5px",
                   textTransform: "uppercase",
@@ -1508,7 +1502,7 @@ export default function CriarFicha({
                   background: "rgba(0,0,0,0.3)",
                   border: `1px solid ${corLinhagem}30`,
                   borderRadius: "5px",
-                  color: "#e8e4dc",
+                  color: "#efe6cf",
                   fontFamily: "'Crimson Pro', 'Palatino Linotype', serif",
                   fontSize: "0.95em",
                   outline: "none",
@@ -1529,7 +1523,7 @@ export default function CriarFicha({
               <label
                 style={{
                   display: "block",
-                  fontSize: "0.6em",
+                  fontSize: "0.74em",
                   fontWeight: 700,
                   letterSpacing: "2.5px",
                   textTransform: "uppercase",
@@ -1551,7 +1545,7 @@ export default function CriarFicha({
                   background: "rgba(0,0,0,0.3)",
                   border: `1px solid ${corLinhagem}30`,
                   borderRadius: "5px",
-                  color: "#e8e4dc",
+                  color: "#efe6cf",
                   fontFamily: "'Crimson Pro', 'Palatino Linotype', serif",
                   fontSize: "0.95em",
                   outline: "none",
@@ -1574,7 +1568,7 @@ export default function CriarFicha({
               <label
                 style={{
                   display: "block",
-                  fontSize: "0.6em",
+                  fontSize: "0.74em",
                   fontWeight: 700,
                   letterSpacing: "2.5px",
                   textTransform: "uppercase",
@@ -1596,7 +1590,7 @@ export default function CriarFicha({
                   background: "rgba(0,0,0,0.3)",
                   border: `1px solid ${corLinhagem}30`,
                   borderRadius: "5px",
-                  color: "#e8e4dc",
+                  color: "#efe6cf",
                   fontFamily: "'Crimson Pro', 'Palatino Linotype', serif",
                   fontSize: "0.95em",
                   outline: "none",
@@ -1613,8 +1607,8 @@ export default function CriarFicha({
               <p
                 style={{
                   margin: "6px 0 0",
-                  fontSize: "0.65em",
-                  color: "#4a4030",
+                  fontSize: "0.74em",
+                  color: "#7d8a92",
                   fontStyle: "italic",
                 }}
               >
@@ -1642,7 +1636,7 @@ export default function CriarFicha({
                 background: podeFinalizarGuardiao
                   ? `linear-gradient(135deg, ${corLinhagem}20 0%, ${corLinhagem}40 100%)`
                   : "rgba(40,40,40,0.5)",
-                color: podeFinalizarGuardiao ? "#e8e4dc" : "#555",
+                color: podeFinalizarGuardiao ? "#efe6cf" : "#7d8a92",
                 border: podeFinalizarGuardiao
                   ? `1px solid ${corLinhagem}66`
                   : "1px solid rgba(80,80,80,0.3)",
@@ -1666,7 +1660,7 @@ export default function CriarFicha({
               style={{
                 background: "transparent",
                 border: "none",
-                color: "#555",
+                color: "#9aa7ae",
                 cursor: "pointer",
                 fontSize: "0.75em",
                 fontFamily: "'Palatino Linotype', serif",

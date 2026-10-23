@@ -71,10 +71,10 @@ function CampoEditavel({ valor, coluna, fichaId, tipo = "textarea", onSalvo }) {
             background: "rgba(196,160,80,0.08)",
             border: "1px solid rgba(196,160,80,0.15)",
             borderRadius: "3px",
-            color: "#6b5530",
+            color: "#b8ae96",
             cursor: "pointer",
             padding: "3px 8px",
-            fontSize: "0.65em",
+            fontSize: "0.74em",
             letterSpacing: "1px",
             fontFamily: "'Palatino Linotype', serif",
             transition: "all 0.2s",
@@ -84,7 +84,7 @@ function CampoEditavel({ valor, coluna, fichaId, tipo = "textarea", onSalvo }) {
             e.currentTarget.style.borderColor = "rgba(196,160,80,0.4)";
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.color = "#6b5530";
+            e.currentTarget.style.color = "#b8ae96";
             e.currentTarget.style.borderColor = "rgba(196,160,80,0.15)";
           }}
         >
@@ -262,7 +262,7 @@ export default function FichaDetalhes({ fichaId, nomeLinhagem, onVoltar }) {
       </header>
 
       {/* ═══ GRID PRINCIPAL ═══ */}
-      <div style={s.gridPrincipal}>
+      <div className="duas-colunas" style={s.gridPrincipal}>
         {/* COLUNA ESQUERDA: Atributos + Derivados */}
         <div style={s.colunaEsq}>
           {/* ATRIBUTOS PRIMÁRIOS */}
@@ -388,7 +388,7 @@ export default function FichaDetalhes({ fichaId, nomeLinhagem, onVoltar }) {
                   onClick={() => setAbaTexto(aba.id)}
                   style={{
                     ...s.abaBtn,
-                    color: abaTexto === aba.id ? "#c4a050" : "#4a3820",
+                    color: abaTexto === aba.id ? "#c4a050" : "#9aa7ae",
                     borderBottom:
                       abaTexto === aba.id
                         ? "1px solid #c4a050"
@@ -468,7 +468,7 @@ export default function FichaDetalhes({ fichaId, nomeLinhagem, onVoltar }) {
                   style={{
                     color: ficha.cristal_metamorfico_equipado
                       ? "#4CAF50"
-                      : "#8b3030",
+                      : "#d07060",
                     fontSize: "0.75em",
                     fontWeight: 700,
                     letterSpacing: "1.5px",
@@ -554,7 +554,7 @@ const s = {
   loadingIcone: { fontSize: "2em", color: "rgba(196,160,80,0.3)" },
   loadingTexto: {
     fontSize: "0.7em",
-    color: "#4a3820",
+    color: "#9aa7ae",
     letterSpacing: "3px",
     fontFamily: "'Palatino Linotype', serif",
   },
@@ -562,7 +562,7 @@ const s = {
     alignSelf: "flex-start",
     background: "transparent",
     border: "none",
-    color: "#4a3820",
+    color: "#9aa7ae",
     cursor: "pointer",
     fontSize: "0.72em",
     fontFamily: "'Palatino Linotype', serif",
@@ -601,20 +601,20 @@ const s = {
   },
   metaTag: {
     fontSize: "0.72em",
-    color: "#6b5530",
+    color: "#b8ae96",
     letterSpacing: "0.5px",
     fontFamily: "'Palatino Linotype', serif",
   },
-  metaDot: { color: "#3a2e10", fontSize: "0.6em" },
+  metaDot: { color: "#7d8a92", fontSize: "0.74em" },
   pronomes: {
     fontSize: "0.68em",
-    color: "#4a3820",
+    color: "#9aa7ae",
     fontStyle: "italic",
     marginTop: "2px",
   },
   interprete: {
-    fontSize: "0.65em",
-    color: "#3a2e10",
+    fontSize: "0.74em",
+    color: "#7d8a92",
     letterSpacing: "0.5px",
     marginTop: "2px",
   },
@@ -635,10 +635,10 @@ const s = {
     borderRadius: "5px",
   },
   cashLabel: {
-    fontSize: "0.5em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "2px",
-    color: "#4a3820",
+    color: "#9aa7ae",
   },
   cashValor: {
     fontSize: "1.1em",
@@ -659,17 +659,17 @@ const s = {
 
   // SEÇÕES
   secao: {
-    background: "rgba(10,12,6,0.7)",
+    background: "rgba(12,17,22,0.7)",
     border: "1px solid rgba(196,160,80,0.08)",
     borderRadius: "7px",
     padding: "16px 18px",
   },
   secaoTitulo: {
     margin: 0,
-    fontSize: "0.52em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "3px",
-    color: "#4a3820",
+    color: "#9aa7ae",
     textTransform: "uppercase",
     fontFamily: "'Palatino Linotype', serif",
   },
@@ -696,8 +696,8 @@ const s = {
     border: "1px solid rgba(196,160,80,0.07)",
   },
   atributoSigla: {
-    fontSize: "0.55em",
-    color: "#5a4820",
+    fontSize: "0.68em",
+    color: "#9aa7ae",
     fontWeight: 700,
     letterSpacing: "1.5px",
   },
@@ -709,8 +709,8 @@ const s = {
     lineHeight: 1,
   },
   atributoLabel: {
-    fontSize: "0.5em",
-    color: "#3a2e10",
+    fontSize: "0.68em",
+    color: "#7d8a92",
     letterSpacing: "0.5px",
   },
 
@@ -728,8 +728,8 @@ const s = {
     borderRadius: "4px",
   },
   derivLabel: {
-    fontSize: "0.52em",
-    color: "#4a3820",
+    fontSize: "0.68em",
+    color: "#9aa7ae",
     letterSpacing: "0.5px",
     fontWeight: 700,
   },
@@ -739,7 +739,7 @@ const s = {
     fontWeight: 700,
     fontFamily: "'EB Garamond', serif",
   },
-  derivSub: { fontSize: "0.45em", color: "#3a2e10" },
+  derivSub: { fontSize: "0.68em", color: "#7d8a92" },
 
   // POOLS
   poolsRow: { display: "flex", flexDirection: "column", gap: "10px" },
@@ -750,14 +750,14 @@ const s = {
     alignItems: "center",
   },
   poolLabel: {
-    fontSize: "0.55em",
+    fontSize: "0.68em",
     fontWeight: 700,
-    color: "#5a4820",
+    color: "#9aa7ae",
     letterSpacing: "1.5px",
   },
   poolNumeros: {
-    fontSize: "0.65em",
-    color: "#6b5530",
+    fontSize: "0.74em",
+    color: "#b8ae96",
     fontFamily: "'EB Garamond', serif",
   },
   poolTrack: {
@@ -784,7 +784,7 @@ const s = {
   },
   sequelaIcon: {
     fontSize: "0.8em",
-    color: "#8b4040",
+    color: "#d07060",
     flexShrink: 0,
     marginTop: "1px",
   },
@@ -795,8 +795,8 @@ const s = {
     display: "block",
   },
   sequelaDesc: {
-    fontSize: "0.65em",
-    color: "#5a3a2a",
+    fontSize: "0.74em",
+    color: "#d07060",
     lineHeight: 1.5,
     display: "block",
     marginTop: "2px",
@@ -822,8 +822,8 @@ const s = {
     display: "block",
   },
   aptidaoDesc: {
-    fontSize: "0.65em",
-    color: "#3a5a2a",
+    fontSize: "0.74em",
+    color: "#7fb069",
     lineHeight: 1.5,
     display: "block",
     marginTop: "2px",
@@ -848,8 +848,8 @@ const s = {
     fontFamily: "'EB Garamond', serif",
   },
   pontoLabel: {
-    fontSize: "0.48em",
-    color: "#4a3820",
+    fontSize: "0.68em",
+    color: "#9aa7ae",
     letterSpacing: "1px",
     fontWeight: 700,
     textAlign: "center",
@@ -867,7 +867,7 @@ const s = {
     border: "none",
     padding: "6px 14px",
     cursor: "pointer",
-    fontSize: "0.6em",
+    fontSize: "0.74em",
     fontWeight: 700,
     letterSpacing: "1.5px",
     textTransform: "uppercase",
@@ -879,10 +879,10 @@ const s = {
   guardiaoGrid: { display: "flex", flexDirection: "column", gap: "16px" },
   guardiaoItem: { display: "flex", flexDirection: "column", gap: "6px" },
   guardiaoLabel: {
-    fontSize: "0.52em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "2px",
-    color: "#5a4820",
+    color: "#9aa7ae",
     fontFamily: "'Palatino Linotype', serif",
   },
 
@@ -897,8 +897,8 @@ const s = {
     alignSelf: "flex-start",
   },
   cristalDesc: {
-    fontSize: "0.62em",
-    color: "#3a2e10",
+    fontSize: "0.74em",
+    color: "#7d8a92",
     fontStyle: "italic",
   },
 
@@ -920,7 +920,7 @@ const s = {
     background: "transparent",
     border: "1px solid rgba(196,160,80,0.1)",
     borderRadius: "3px",
-    color: "#4a3820",
+    color: "#9aa7ae",
     cursor: "pointer",
     fontSize: "0.68em",
     letterSpacing: "1px",

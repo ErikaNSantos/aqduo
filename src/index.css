@@ -81,7 +81,7 @@ body {
 
 h1,
 h2 {
-  font-family: var(--heading);
+  font-family: inherit; /* as páginas usam a serifa do site */
   font-weight: 500;
   color: var(--text-h);
 }
@@ -235,5 +235,61 @@ code {
   }
   .mo-som {
     bottom: 14px !important;
+  }
+}
+
+/* ── Painel interno ── */
+.painel-abas::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .painel-marca {
+    display: none;
+  }
+  .painel-inicio.com-lateral {
+    grid-template-columns: 1fr !important;
+  }
+  .painel-lateral {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+/* No celular as abas descem para uma linha própria, que rola para o lado */
+@media (max-width: 700px) {
+  .painel-topo {
+    flex-wrap: wrap;
+    height: auto !important;
+    padding: 8px 12px 0 !important;
+    row-gap: 4px !important;
+  }
+  .painel-abas {
+    order: 3;
+    flex: 0 0 100% !important;
+    justify-content: flex-start !important;
+    margin: 0 -12px;
+    padding: 0 6px;
+  }
+  .painel-abas button {
+    height: 42px !important;
+  }
+  .painel-perfil {
+    margin-left: auto;
+  }
+  .painel-conteudo {
+    padding: 12px 12px 90px !important;
+  }
+}
+
+/* Colunas lado a lado viram uma coluna só em telas estreitas */
+@media (max-width: 860px) {
+  .duas-colunas {
+    grid-template-columns: 1fr !important;
+  }
+}
+@media (max-width: 520px) {
+  .tres-colunas {
+    grid-template-columns: 1fr 1fr !important;
   }
 }

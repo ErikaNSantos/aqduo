@@ -19,10 +19,11 @@ function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_, session) => {
+    } = supabase.auth.onAuthStateChange((evento, session) => {
       setSession(session);
-      if (session) navigate("/app", { replace: true });
-      else navigate("/", { replace: true });
+      // só redireciona quando a pessoa entra ou sai; ao abrir a página, cada rota decide
+      if (evento === "SIGNED_IN" && window.location.pathname.endsWith("/entrar")) navigate("/app", { replace: true });
+      if (evento === "SIGNED_OUT") navigate("/", { replace: true });
     });
 
     return () => subscription.unsubscribe();
@@ -63,7 +64,7 @@ function App() {
         element={
           session ? (
             //<Dashboard session={session} />
-            <PainelPrincipal session={session} />
+            <PainelPrincipal session={session} onSair={() => supabase.auth.signOut()} />
           ) : (
             <Navigate to="/entrar" replace />
           )
