@@ -408,7 +408,7 @@ export default function CriarFicha({
                   setEtapa(2);
                 }}
                 style={{
-                  height: "450px",
+                  height: "clamp(340px, 90vw, 450px)",
                   borderRadius: "16px",
                   border: `2px solid ${coresCards[index % coresCards.length]}`,
                   background: l.imagem_url

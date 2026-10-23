@@ -494,6 +494,7 @@ function ViewInicio({
                     <motion.circle
                       cx={mx}
                       cy={my}
+                      r={13}
                       fill="url(#metritoBrilho)"
                       animate={{ r: [10, 16, 10], opacity: [0.5, 0.9, 0.5] }}
                       transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
@@ -1340,7 +1341,11 @@ const s = {
     fontSize: "0.74em",
     fontWeight: 700,
     letterSpacing: "1px",
-    color: "#9a7a30",
+    color: "#d4b87a",
+    maxWidth: "140px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   btnSair: {
     background: "none",
