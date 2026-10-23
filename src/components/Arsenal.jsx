@@ -245,10 +245,10 @@ export default function Arsenal({ onVoltar }) {
         background: "rgba(15, 15, 20, 0.95)",
         padding: "40px",
         borderRadius: "24px",
-        border: "1px solid #333",
+        border: "1px solid rgba(232,208,138,0.15)",
         maxWidth: "1200px",
         margin: "0 auto",
-        color: "#fff",
+        color: "#efe6cf",
       }}
     >
       {/* HEADER */}
@@ -257,7 +257,7 @@ export default function Arsenal({ onVoltar }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          borderBottom: "1px solid #333",
+          borderBottom: "1px solid rgba(232,208,138,0.15)",
           paddingBottom: "20px",
           marginBottom: "30px",
         }}
@@ -273,7 +273,7 @@ export default function Arsenal({ onVoltar }) {
           >
             Arsenal & Estorvo
           </h2>
-          <span style={{ fontSize: "0.85em", color: "#888" }}>
+          <span style={{ fontSize: "0.85em", color: "#9aa7ae" }}>
             Gerencie o peso da sua vida dupla
           </span>
         </div>
@@ -281,9 +281,9 @@ export default function Arsenal({ onVoltar }) {
           onClick={onVoltar}
           style={{
             padding: "10px 20px",
-            background: "#222",
+            background: "#1a242c",
             border: "1px solid #555",
-            color: "#ccc",
+            color: "#cfc6b0",
             borderRadius: "6px",
             cursor: "pointer",
             transition: "0.2s",
@@ -300,7 +300,7 @@ export default function Arsenal({ onVoltar }) {
           padding: "20px",
           borderRadius: "12px",
           marginBottom: "30px",
-          border: "1px solid #222",
+          border: "1px solid rgba(232,208,138,0.15)",
         }}
       >
         <div
@@ -314,11 +314,11 @@ export default function Arsenal({ onVoltar }) {
             style={{
               textTransform: "uppercase",
               fontSize: "0.85em",
-              color: "#aaa",
+              color: "#b8ae96",
             }}
           >
             Carga Atual:{" "}
-            <strong style={{ color: "#fff" }}>{pesoTotal} kg</strong>
+            <strong style={{ color: "#efe6cf" }}>{pesoTotal} kg</strong>
           </span>
           <span
             style={{
@@ -334,10 +334,10 @@ export default function Arsenal({ onVoltar }) {
           style={{
             width: "100%",
             height: "12px",
-            background: "#111",
+            background: "rgba(12,17,22,0.85)",
             borderRadius: "6px",
             overflow: "hidden",
-            border: "1px solid #333",
+            border: "1px solid rgba(232,208,138,0.15)",
           }}
         >
           <div
@@ -352,6 +352,7 @@ export default function Arsenal({ onVoltar }) {
       </div>
 
       <div
+        className="duas-colunas"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1.5fr",
@@ -374,7 +375,7 @@ export default function Arsenal({ onVoltar }) {
             style={{
               margin: "0 0 10px 0",
               fontSize: "1em",
-              color: "#888",
+              color: "#9aa7ae",
               textTransform: "uppercase",
               textAlign: "center",
               letterSpacing: "1px",
@@ -402,7 +403,7 @@ export default function Arsenal({ onVoltar }) {
             <span
               style={{
                 fontSize: "0.7em",
-                color: "#666",
+                color: "#b8ae96",
                 textTransform: "uppercase",
                 marginBottom: "8px",
               }}
@@ -414,7 +415,7 @@ export default function Arsenal({ onVoltar }) {
                 <div
                   key={item.idInstance}
                   style={{
-                    color: "#4CAF50",
+                    color: "#e8d08a",
                     fontWeight: "bold",
                     fontSize: "0.9em",
                   }}
@@ -423,7 +424,7 @@ export default function Arsenal({ onVoltar }) {
                 </div>
               ))
             ) : (
-              <span style={{ color: "#444", fontSize: "0.9em" }}>
+              <span style={{ color: "#7d8a92", fontSize: "0.9em" }}>
                 Roupas civis
               </span>
             )}
@@ -448,7 +449,7 @@ export default function Arsenal({ onVoltar }) {
             <span
               style={{
                 fontSize: "0.7em",
-                color: "#666",
+                color: "#b8ae96",
                 textTransform: "uppercase",
                 marginBottom: "8px",
               }}
@@ -470,7 +471,7 @@ export default function Arsenal({ onVoltar }) {
                 </div>
               ))
             ) : (
-              <span style={{ color: "#444", fontSize: "0.9em" }}>
+              <span style={{ color: "#7d8a92", fontSize: "0.9em" }}>
                 Sem adornos
               </span>
             )}
@@ -495,7 +496,7 @@ export default function Arsenal({ onVoltar }) {
             <span
               style={{
                 fontSize: "0.7em",
-                color: "#666",
+                color: "#b8ae96",
                 textTransform: "uppercase",
                 marginBottom: "8px",
               }}
@@ -518,7 +519,7 @@ export default function Arsenal({ onVoltar }) {
                   <span
                     style={{
                       fontSize: "0.8em",
-                      color: "#aaa",
+                      color: "#b8ae96",
                       fontWeight: "normal",
                     }}
                   >
@@ -527,7 +528,7 @@ export default function Arsenal({ onVoltar }) {
                 </div>
               ))
             ) : (
-              <span style={{ color: "#444", fontSize: "0.9em" }}>
+              <span style={{ color: "#7d8a92", fontSize: "0.9em" }}>
                 Mãos vazias
               </span>
             )}
@@ -549,7 +550,7 @@ export default function Arsenal({ onVoltar }) {
             style={{
               display: "flex",
               background: "rgba(0,0,0,0.5)",
-              borderBottom: "1px solid #333",
+              borderBottom: "1px solid rgba(232,208,138,0.15)",
             }}
           >
             <button
@@ -561,7 +562,7 @@ export default function Arsenal({ onVoltar }) {
                   abaDireita === "mochila"
                     ? "rgba(255,255,255,0.05)"
                     : "transparent",
-                color: abaDireita === "mochila" ? "#fff" : "#666",
+                color: abaDireita === "mochila" ? "#efe6cf" : "#7d8a92",
                 border: "none",
                 borderBottom:
                   abaDireita === "mochila"
@@ -583,7 +584,7 @@ export default function Arsenal({ onVoltar }) {
                   abaDireita === "catalogo"
                     ? "rgba(255,255,255,0.05)"
                     : "transparent",
-                color: abaDireita === "catalogo" ? "#fff" : "#666",
+                color: abaDireita === "catalogo" ? "#efe6cf" : "#7d8a92",
                 border: "none",
                 borderBottom:
                   abaDireita === "catalogo"
@@ -641,14 +642,14 @@ export default function Arsenal({ onVoltar }) {
                     >
                       <span
                         style={{
-                          color: item.equipado ? "#fff" : "#ccc",
+                          color: item.equipado ? "#efe6cf" : "#cfc6b0",
                           fontWeight: item.equipado ? "bold" : "normal",
                           fontSize: "0.95em",
                         }}
                       >
                         {item.nome}
                       </span>
-                      <span style={{ fontSize: "0.75em", color: "#888" }}>
+                      <span style={{ fontSize: "0.75em", color: "#9aa7ae" }}>
                         Peso: {item.peso} kg{" "}
                         {item.dano && `| Dano: ${item.dano}`}
                       </span>
@@ -661,7 +662,7 @@ export default function Arsenal({ onVoltar }) {
                           style={{
                             padding: "6px 12px",
                             background: item.equipado ? "#333" : "#00FFFF",
-                            color: item.equipado ? "#fff" : "#000",
+                            color: item.equipado ? "#efe6cf" : "#000",
                             border: "none",
                             borderRadius: "4px",
                             cursor: "pointer",
@@ -715,8 +716,8 @@ export default function Arsenal({ onVoltar }) {
                         style={{
                           padding: "4px 10px",
                           background:
-                            filtroCatalogo === filtro ? "#4CAF50" : "#222",
-                          color: "#fff",
+                            filtroCatalogo === filtro ? "#c4a050" : "#1a242c",
+                          color: "#efe6cf",
                           border: "none",
                           borderRadius: "15px",
                           cursor: "pointer",
@@ -740,14 +741,14 @@ export default function Arsenal({ onVoltar }) {
                       padding: "10px 15px",
                       background: "rgba(0,0,0,0.4)",
                       borderRadius: "8px",
-                      border: "1px solid #222",
+                      border: "1px solid rgba(232,208,138,0.15)",
                     }}
                   >
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <span style={{ color: "#ddd", fontSize: "0.9em" }}>
                         {item.nome}
                       </span>
-                      <span style={{ fontSize: "0.75em", color: "#666" }}>
+                      <span style={{ fontSize: "0.75em", color: "#b8ae96" }}>
                         {item.tipo.toUpperCase()} • {item.peso} kg
                       </span>
                     </div>
@@ -755,8 +756,8 @@ export default function Arsenal({ onVoltar }) {
                       onClick={() => adicionarAoInventario(item)}
                       style={{
                         padding: "6px 15px",
-                        background: "#4CAF50",
-                        color: "#fff",
+                        background: "#c4a050",
+                        color: "#efe6cf",
                         border: "none",
                         borderRadius: "4px",
                         cursor: "pointer",

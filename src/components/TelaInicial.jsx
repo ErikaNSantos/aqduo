@@ -288,7 +288,7 @@ function ModalEscola({ escola, onFechar }) {
             style={s.modalX}
             onClick={onFechar}
             onMouseOver={(e) => (e.currentTarget.style.color = "#fff")}
-            onMouseOut={(e) => (e.currentTarget.style.color = "#444")}
+            onMouseOut={(e) => (e.currentTarget.style.color = "#7d8a92")}
           >
             ✕
           </button>
@@ -328,7 +328,7 @@ function ModalEscola({ escola, onFechar }) {
         <p
           style={{
             textAlign: "center",
-            color: "#333",
+            color: "#7d8a92",
             fontSize: "0.7em",
             margin: 0,
           }}
@@ -347,7 +347,7 @@ const s = {
   root: {
     minHeight: "100vh",
     width: "100%",
-    background: "#070906",
+    background: "#0a0f14",
     position: "relative",
     overflow: "clip",
     fontFamily: "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
@@ -407,7 +407,7 @@ const s = {
   navSub: {
     fontSize: "0.54em",
     letterSpacing: "3px",
-    color: "#5a4415",
+    color: "#9aa7ae",
     marginTop: 2,
   },
   btnEntrar: {
@@ -478,7 +478,7 @@ const s = {
     fontSize: "0.62em",
     fontWeight: 700,
     letterSpacing: "4px",
-    color: "#52421e",
+    color: "#d4b87a",
     textTransform: "uppercase",
     whiteSpace: "nowrap",
     flexShrink: 0,
@@ -513,7 +513,7 @@ const s = {
     margin: "0 auto",
     textAlign: "center",
     fontSize: "0.86em",
-    color: "#6b5530",
+    color: "#b8ae96",
     lineHeight: 1.7,
     maxWidth: 480,
   },
@@ -582,7 +582,7 @@ const s = {
   cardResumo: {
     margin: 0,
     fontSize: "0.64em",
-    color: "#4a3a1a",
+    color: "#7d8a92",
     lineHeight: 1.6,
     flex: 1,
   },
@@ -610,7 +610,7 @@ const s = {
   ctaSub: {
     margin: 0,
     fontSize: "0.82em",
-    color: "#5a4820",
+    color: "#9aa7ae",
     lineHeight: 1.8,
     maxWidth: 420,
   },
@@ -637,7 +637,7 @@ const s = {
   btnJaTemConta: {
     background: "none",
     border: "none",
-    color: "#52421e",
+    color: "#d4b87a",
     fontFamily: "inherit",
     fontSize: "0.75em",
     letterSpacing: "1px",
@@ -647,7 +647,7 @@ const s = {
   rodape: {
     margin: "12px 0 0",
     fontSize: "0.65em",
-    color: "#2a2010",
+    color: "#7d8a92",
     letterSpacing: "1px",
     fontStyle: "italic",
   },
@@ -663,7 +663,7 @@ const s = {
     padding: 20,
   },
   modal: {
-    background: "rgba(8,10,5,0.98)",
+    background: "rgba(10,14,18,0.98)",
     border: "1px solid",
     borderRadius: 8,
     padding: 36,
@@ -683,7 +683,7 @@ const s = {
   modalX: {
     background: "none",
     border: "none",
-    color: "#444",
+    color: "#7d8a92",
     fontSize: "1.15em",
     cursor: "pointer",
     padding: "4px 8px",

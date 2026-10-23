@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
 import { motion } from "framer-motion";
+import urlEmblema from "../assets/emblema.png";
 
 // ─────────────────────────────────────────────
 // BOTÃO DOURADO — mesma lógica do TelaInicial
@@ -26,7 +27,7 @@ function BotaoDourado({
         background: disabled
           ? "rgba(26,18,0,0.4)"
           : "linear-gradient(135deg, #1a1200 0%, #2a1e00 50%, #1a1200 100%)",
-        color: disabled ? "#5a4820" : "#e8c96a",
+        color: disabled ? "#7d8a92" : "#e8c96a",
         border: "1px solid",
         borderColor: disabled ? "rgba(196,160,80,0.2)" : "#c4a050",
         borderRadius: "6px",
@@ -184,8 +185,7 @@ export default function Auth() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
           >
-            {/* Troque por <img src="logo.png"> quando disponível */}
-            <div style={s.logoIcone}>⚔</div>
+            <img src={urlEmblema} alt="" style={s.logoImg} />
           </motion.div>
 
           {/* Títulos */}
@@ -292,7 +292,7 @@ const s = {
   root: {
     minHeight: "100vh",
     width: "100%",
-    background: "#070906",
+    background: "#0a0f14",
     position: "relative",
     overflow: "hidden",
     fontFamily: "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
@@ -330,7 +330,7 @@ const s = {
   card: {
     position: "relative",
     padding: "44px 36px 36px",
-    background: "rgba(10,12,6,0.88)",
+    background: "rgba(12,17,22,0.88)",
     backdropFilter: "blur(20px)",
     WebkitBackdropFilter: "blur(20px)",
     borderRadius: "12px",
@@ -362,19 +362,7 @@ const s = {
     justifyContent: "center",
     marginBottom: "20px",
   },
-  logoIcone: {
-    width: "52px",
-    height: "52px",
-    borderRadius: "50%",
-    border: "1px solid rgba(196,160,80,0.4)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "1.4em",
-    color: "#c4a050",
-    background: "rgba(196,160,80,0.05)",
-    boxShadow: "0 0 20px rgba(196,160,80,0.1)",
-  },
+  logoImg: { height: 72, width: "auto", display: "block", filter: "drop-shadow(0 0 18px rgba(196,160,80,0.25))" },
   titulo: {
     margin: "0 0 4px",
     color: "#e8d08a",
@@ -384,8 +372,8 @@ const s = {
   },
   subtitulo: {
     margin: 0,
-    color: "#52421e",
-    fontSize: "0.6em",
+    color: "#d4b87a",
+    fontSize: "0.74em",
     letterSpacing: "4px",
   },
   divisor: {
@@ -396,7 +384,7 @@ const s = {
   },
   modoTexto: {
     margin: 0,
-    color: "#6b5530",
+    color: "#b8ae96",
     fontSize: "0.75em",
     letterSpacing: "1px",
   },
@@ -428,14 +416,14 @@ const s = {
   },
   separadorTexto: {
     fontSize: "0.7em",
-    color: "#3a2e10",
+    color: "#7d8a92",
     letterSpacing: "2px",
     textTransform: "uppercase",
   },
   btnSecundario: {
     background: "none",
     border: "none",
-    color: "#4a3a18",
+    color: "#7d8a92",
     fontFamily: "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
     fontSize: "0.75em",
     letterSpacing: "0.5px",
@@ -449,8 +437,8 @@ const s = {
   aviso: {
     margin: "24px 0 0",
     textAlign: "center",
-    fontSize: "0.62em",
-    color: "#2a2010",
+    fontSize: "0.74em",
+    color: "#7d8a92",
     fontStyle: "italic",
     lineHeight: 1.6,
     letterSpacing: "0.3px",

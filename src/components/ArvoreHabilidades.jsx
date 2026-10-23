@@ -182,7 +182,7 @@ export default function ArvoreHabilidades({ fichaId, onVoltar, onFinalizar }) {
 
   if (carregando)
     return (
-      <div style={{ color: "#4CAF50", padding: "50px" }}>
+      <div style={{ color: "#9aa7ae", padding: "50px" }}>
         CONECTANDO À MATRIZ...
       </div>
     );
@@ -269,7 +269,7 @@ export default function ArvoreHabilidades({ fichaId, onVoltar, onFinalizar }) {
         {/* Título Skew */}
         <div
           style={{
-            background: "#ff0000",
+            background: "#a8443a",
             padding: "8px 15px",
             transform: "skew(-8deg)",
             marginBottom: "15px",
@@ -280,7 +280,7 @@ export default function ArvoreHabilidades({ fichaId, onVoltar, onFinalizar }) {
           <h2
             style={{
               margin: 0,
-              color: "#fff",
+              color: "#efe6cf",
               fontSize: "0.85em",
               textTransform: "uppercase",
               transform: "skew(8deg)",
@@ -307,7 +307,7 @@ export default function ArvoreHabilidades({ fichaId, onVoltar, onFinalizar }) {
         >
           <span
             style={{
-              color: "#4CAF50",
+              color: "#e8d08a",
               fontWeight: "900",
               fontSize: "1.8em",
               lineHeight: "1",
@@ -317,8 +317,8 @@ export default function ArvoreHabilidades({ fichaId, onVoltar, onFinalizar }) {
           </span>
           <span
             style={{
-              color: "#888",
-              fontSize: "0.55em",
+              color: "#9aa7ae",
+              fontSize: "0.68em",
               textTransform: "uppercase",
               letterSpacing: "1px",
               marginTop: "4px",
@@ -333,7 +333,7 @@ export default function ArvoreHabilidades({ fichaId, onVoltar, onFinalizar }) {
           style={{
             background: "none",
             border: "none",
-            color: "#555",
+            color: "#9aa7ae",
             cursor: "pointer",
             fontSize: "0.7em",
             textDecoration: "underline",
@@ -554,7 +554,7 @@ export default function ArvoreHabilidades({ fichaId, onVoltar, onFinalizar }) {
           right: "30px",
           zIndex: 10,
           padding: "15px 40px",
-          background: "#4CAF50",
+          background: "#c4a050",
           color: "#000",
           border: "none",
           borderRadius: "8px",

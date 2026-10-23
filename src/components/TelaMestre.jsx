@@ -6,12 +6,12 @@ import { motion, AnimatePresence } from "framer-motion";
 // TIPOS DE EVENTO (cores do feed)
 // ─────────────────────────────────────────────
 const TIPOS_EVENTO = [
-  { valor: "POLÍTICA", cor: "#8b6020" },
-  { valor: "RESISTÊNCIA", cor: "#6b2fa0" },
-  { valor: "RELÍQUIA", cor: "#1a6b8a" },
-  { valor: "RECRUTAMENTO", cor: "#2a7040" },
-  { valor: "ALERTA", cor: "#8b2020" },
-  { valor: "RUMOR", cor: "#5a4820" },
+  { valor: "POLÍTICA", cor: "#d4a24a" },
+  { valor: "RESISTÊNCIA", cor: "#b58ae0" },
+  { valor: "RELÍQUIA", cor: "#5cc3ff" },
+  { valor: "RECRUTAMENTO", cor: "#7fb069" },
+  { valor: "ALERTA", cor: "#e08878" },
+  { valor: "RUMOR", cor: "#9aa7ae" },
 ];
 
 const TIPO_COR = {};
@@ -185,7 +185,7 @@ export default function TelaMestre({ session, nomeLinhagem }) {
               borderColor: feedbackMsg.erro
                 ? "rgba(139,32,32,0.4)"
                 : "rgba(76,175,80,0.4)",
-              color: feedbackMsg.erro ? "#a04040" : "#4CAF50",
+              color: feedbackMsg.erro ? "#e08878" : "#7fb069",
             }}
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -204,7 +204,7 @@ export default function TelaMestre({ session, nomeLinhagem }) {
       </div>
 
       {/* GRID PRINCIPAL */}
-      <div style={s.grid}>
+      <div className="duas-colunas" style={s.grid}>
         {/* ═══ COLUNA ESQUERDA: MONITORAMENTO ═══ */}
         <div style={s.coluna}>
           <h3 style={s.secaoTitulo}>MONITORAMENTO DE SCRIPS</h3>
@@ -266,7 +266,7 @@ export default function TelaMestre({ session, nomeLinhagem }) {
                     valor={ficha.nivel ?? 1}
                     onMenos={() => quickEdit(ficha.id, "nivel", -1)}
                     onMais={() => quickEdit(ficha.id, "nivel", 1)}
-                    cor="#6b2fa0"
+                    cor="#b58ae0"
                   />
 
                   {/* QUICK-EDIT: PH */}
@@ -304,7 +304,7 @@ export default function TelaMestre({ session, nomeLinhagem }) {
                     ...s.tipoBtn,
                     borderColor:
                       novoTipo === t.valor ? t.cor : "rgba(196,160,80,0.1)",
-                    color: novoTipo === t.valor ? t.cor : "#3a2e10",
+                    color: novoTipo === t.valor ? t.cor : "#7d8a92",
                     background:
                       novoTipo === t.valor ? `${t.cor}12` : "transparent",
                   }}
@@ -389,7 +389,7 @@ export default function TelaMestre({ session, nomeLinhagem }) {
                       <span
                         style={{
                           ...s.eventoTipo,
-                          color: TIPO_COR[ev.tipo] || "#5a4820",
+                          color: TIPO_COR[ev.tipo] || "#9aa7ae",
                         }}
                       >
                         [{ev.tipo}]
@@ -400,7 +400,7 @@ export default function TelaMestre({ session, nomeLinhagem }) {
                       <button
                         style={{
                           ...s.eventoBtn,
-                          color: ev.ativo ? "#4a8c5c" : "#8b6020",
+                          color: ev.ativo ? "#7fb069" : "#d4a24a",
                         }}
                         onClick={() => toggleEvento(ev.id, ev.ativo)}
                         title={ev.ativo ? "Desativar" : "Reativar"}
@@ -408,7 +408,7 @@ export default function TelaMestre({ session, nomeLinhagem }) {
                         {ev.ativo ? "●" : "○"}
                       </button>
                       <button
-                        style={{ ...s.eventoBtn, color: "#5a2020" }}
+                        style={{ ...s.eventoBtn, color: "#d07060" }}
                         onClick={() => deletarEvento(ev.id)}
                         title="Deletar"
                       >
@@ -437,7 +437,7 @@ function QuickEditRow({ label, valor, onMenos, onMais, cor }) {
         <button
           style={{
             ...s.qeBtn,
-            color: "#8b3030",
+            color: "#d07060",
             borderColor: "rgba(139,48,48,0.2)",
           }}
           onClick={onMenos}
@@ -484,7 +484,7 @@ const s = {
   loadingIcone: { fontSize: "2em", color: "rgba(196,160,80,0.3)" },
   loadingTexto: {
     fontSize: "0.7em",
-    color: "#4a3820",
+    color: "#9aa7ae",
     letterSpacing: "3px",
     fontFamily: "'Palatino Linotype', serif",
   },
@@ -496,7 +496,7 @@ const s = {
     right: "20px",
     zIndex: 999,
     padding: "8px 18px",
-    background: "rgba(10,12,6,0.95)",
+    background: "rgba(12,17,22,0.95)",
     border: "1px solid",
     borderRadius: "5px",
     fontSize: "0.68em",
@@ -509,10 +509,10 @@ const s = {
   titleRow: { display: "flex", alignItems: "center", gap: "14px" },
   titulo: {
     margin: 0,
-    fontSize: "0.62em",
+    fontSize: "0.74em",
     fontWeight: 700,
     letterSpacing: "4px",
-    color: "#52421e",
+    color: "#d4b87a",
     textTransform: "uppercase",
     whiteSpace: "nowrap",
     fontFamily: "'Palatino Linotype', serif",
@@ -539,10 +539,10 @@ const s = {
   // SEÇÕES
   secaoTitulo: {
     margin: 0,
-    fontSize: "0.52em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "3px",
-    color: "#4a3820",
+    color: "#9aa7ae",
     textTransform: "uppercase",
     fontFamily: "'Palatino Linotype', serif",
   },
@@ -553,7 +553,7 @@ const s = {
   },
   vazio: {
     fontSize: "0.72em",
-    color: "#3a2e10",
+    color: "#7d8a92",
     fontStyle: "italic",
     fontFamily: "'Palatino Linotype', serif",
   },
@@ -566,7 +566,7 @@ const s = {
   },
   fichaCard: {
     padding: "14px 16px",
-    background: "rgba(10,12,6,0.8)",
+    background: "rgba(12,17,22,0.8)",
     border: "1px solid rgba(196,160,80,0.1)",
     borderRadius: "7px",
     display: "flex",
@@ -587,12 +587,12 @@ const s = {
   },
   fichaLinhagem: {
     display: "block",
-    fontSize: "0.6em",
-    color: "#5a4820",
+    fontSize: "0.74em",
+    color: "#9aa7ae",
     letterSpacing: "0.5px",
   },
   fichaNivel: {
-    fontSize: "0.55em",
+    fontSize: "0.68em",
     fontWeight: 700,
     background: "rgba(196,160,80,0.1)",
     border: "1px solid rgba(196,160,80,0.2)",
@@ -619,8 +619,8 @@ const s = {
     border: "1px solid rgba(196,160,80,0.06)",
   },
   atribMiniLabel: {
-    fontSize: "0.45em",
-    color: "#4a3820",
+    fontSize: "0.68em",
+    color: "#9aa7ae",
     fontWeight: 700,
     letterSpacing: "1px",
   },
@@ -639,10 +639,10 @@ const s = {
     padding: "2px 0",
   },
   qeLabel: {
-    fontSize: "0.5em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "1.5px",
-    color: "#4a3820",
+    color: "#9aa7ae",
     fontFamily: "'Palatino Linotype', serif",
   },
   qeControls: {
@@ -677,7 +677,7 @@ const s = {
   // EDITOR DE NOTÍCIAS
   editorCard: {
     padding: "16px",
-    background: "rgba(10,12,6,0.8)",
+    background: "rgba(12,17,22,0.8)",
     border: "1px solid rgba(196,160,80,0.1)",
     borderRadius: "7px",
     display: "flex",
@@ -695,7 +695,7 @@ const s = {
     border: "1px solid",
     background: "transparent",
     cursor: "pointer",
-    fontSize: "0.5em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "1px",
     fontFamily: "'Palatino Linotype', serif",
@@ -736,15 +736,15 @@ const s = {
     gap: "6px",
   },
   previewLabel: {
-    fontSize: "0.45em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "2px",
-    color: "#3a2e10",
+    color: "#7d8a92",
     fontFamily: "'Palatino Linotype', serif",
   },
   previewCard: {
     padding: "10px 12px",
-    background: "rgba(10,12,6,0.85)",
+    background: "rgba(12,17,22,0.85)",
     border: "1px solid rgba(196,160,80,0.09)",
     borderRadius: "5px",
     display: "flex",
@@ -752,7 +752,7 @@ const s = {
     gap: "4px",
   },
   previewTipo: {
-    fontSize: "0.5em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "1px",
     border: "1px solid",
@@ -769,8 +769,8 @@ const s = {
   },
   previewDesc: {
     margin: 0,
-    fontSize: "0.62em",
-    color: "#4a3820",
+    fontSize: "0.74em",
+    color: "#9aa7ae",
     lineHeight: 1.5,
   },
 
@@ -807,7 +807,7 @@ const s = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "8px 10px",
-    background: "rgba(10,12,6,0.6)",
+    background: "rgba(12,17,22,0.6)",
     border: "1px solid rgba(196,160,80,0.06)",
     borderRadius: "4px",
     transition: "opacity 0.2s",
@@ -820,7 +820,7 @@ const s = {
     minWidth: 0,
   },
   eventoTipo: {
-    fontSize: "0.48em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "0.5px",
     flexShrink: 0,

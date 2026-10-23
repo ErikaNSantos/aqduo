@@ -9,7 +9,7 @@ const DADOS = [
   { tipo: "d2", lados: 2, cor: "#cfffdc" },
   { tipo: "d4", lados: 4, cor: "#4a8c5c" },
   { tipo: "d6", lados: 6, cor: "#c4a050" },
-  { tipo: "d8", lados: 8, cor: "#6b5530" },
+  { tipo: "d8", lados: 8, cor: "#b8ae96" },
   { tipo: "d10", lados: 10, cor: "#8b2020" },
   { tipo: "d12", lados: 12, cor: "#6b2fa0" },
   { tipo: "d20", lados: 20, cor: "#1a6b8a" },
@@ -205,7 +205,7 @@ export default function BandejaDados({ fichaId }) {
                         borderColor:
                           qtd > 0 ? dado.cor : "rgba(196,160,80,0.15)",
                         background:
-                          qtd > 0 ? `${dado.cor}15` : "rgba(10,12,6,0.6)",
+                          qtd > 0 ? `${dado.cor}15` : "rgba(12,17,22,0.6)",
                       }}
                       whileTap={{ scale: 0.9 }}
                       onClick={() => adicionarDado(dado)}
@@ -213,7 +213,7 @@ export default function BandejaDados({ fichaId }) {
                       <span
                         style={{
                           ...s.dadoLabel,
-                          color: qtd > 0 ? dado.cor : "#5a4820",
+                          color: qtd > 0 ? dado.cor : "#7d8a92",
                         }}
                       >
                         {dado.tipo.toUpperCase()}
@@ -404,16 +404,16 @@ const s = {
   },
   sheetTitulo: {
     margin: 0,
-    fontSize: "0.65em",
+    fontSize: "0.74em",
     fontWeight: 700,
     letterSpacing: "3px",
-    color: "#5a4820",
+    color: "#9aa7ae",
     textTransform: "uppercase",
     fontFamily: "'Palatino Linotype', serif",
   },
   sheetSub: {
-    fontSize: "0.62em",
-    color: "#3a2e10",
+    fontSize: "0.74em",
+    color: "#7d8a92",
     letterSpacing: "0.5px",
     fontFamily: "'Palatino Linotype', serif",
   },
@@ -463,14 +463,14 @@ const s = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "0.55em",
+    fontSize: "0.68em",
     fontWeight: 900,
     color: "#000",
   },
   dadoRemover: {
     background: "transparent",
     border: "none",
-    color: "#5a3020",
+    color: "#d07060",
     cursor: "pointer",
     fontSize: "0.8em",
     fontWeight: 700,
@@ -495,9 +495,9 @@ const s = {
   bandejaLimpar: {
     background: "transparent",
     border: "1px solid rgba(139,50,50,0.2)",
-    color: "#5a3020",
+    color: "#d07060",
     cursor: "pointer",
-    fontSize: "0.55em",
+    fontSize: "0.68em",
     fontWeight: 700,
     padding: "3px 10px",
     borderRadius: "3px",
@@ -560,7 +560,7 @@ const s = {
     lineHeight: 1,
   },
   resultadoDadoTipo: {
-    fontSize: "0.45em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "0.5px",
     opacity: 0.6,
@@ -572,10 +572,10 @@ const s = {
     gap: "2px",
   },
   resultadoTotalLabel: {
-    fontSize: "0.5em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "2px",
-    color: "#5a4820",
+    color: "#9aa7ae",
   },
   resultadoTotalValor: {
     fontSize: "2.2em",
@@ -594,10 +594,10 @@ const s = {
     paddingTop: "12px",
   },
   historicoTitulo: {
-    fontSize: "0.48em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "2px",
-    color: "#3a2e10",
+    color: "#7d8a92",
     fontFamily: "'Palatino Linotype', serif",
   },
   historicoList: {
@@ -614,8 +614,8 @@ const s = {
     background: "rgba(196,160,80,0.03)",
   },
   historicoFormula: {
-    fontSize: "0.65em",
-    color: "#5a4820",
+    fontSize: "0.74em",
+    color: "#9aa7ae",
     fontFamily: "'Palatino Linotype', serif",
   },
   historicoResultado: {

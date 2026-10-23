@@ -7,6 +7,7 @@ import CriarFicha from "./CriarFicha";
 import FichaDetalhes from "./FichaDetalhes";
 import BandejaDados from "./BandejaDados";
 import TelaMestre from "./TelaMestre";
+import urlEmblema from "../assets/emblema.png";
 
 const GEO_URL =
   "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -18,7 +19,7 @@ const ESCOLAS = [
     id: "primordiais",
     nome: "Bastião de Rocha",
     icone: "🜂",
-    cor: "#c47a2b",
+    cor: "#e0954a",
     lat: -15,
     lng: -48,
   },
@@ -26,7 +27,7 @@ const ESCOLAS = [
     id: "colossos",
     nome: "Forja de Titãs",
     icone: "⚔",
-    cor: "#8b2020",
+    cor: "#e0604a",
     lat: 48,
     lng: 12,
   },
@@ -34,7 +35,7 @@ const ESCOLAS = [
     id: "mentalistas",
     nome: "Cidadela do Pensamento",
     icone: "◈",
-    cor: "#6b2fa0",
+    cor: "#b58ae0",
     lat: 32,
     lng: 108,
   },
@@ -42,18 +43,21 @@ const ESCOLAS = [
     id: "eter",
     nome: "Santuário do Éter",
     icone: "✦",
-    cor: "#1a6b8a",
+    cor: "#5cc3ff",
     lat: -25,
     lng: 133,
   },
 ];
 
+// Onde o meteoro caiu (Tocantins), em [longitude, latitude]
+const SERRA_DA_CANGALHA = [-46.867, -8.083];
+
 const TIPO_COR = {
-  POLÍTICA: "#8b6020",
-  RESISTÊNCIA: "#6b2fa0",
-  RELÍQUIA: "#1a6b8a",
-  RECRUTAMENTO: "#2a7040",
-  ALERTA: "#8b2020",
+  POLÍTICA: "#d4a24a",
+  RESISTÊNCIA: "#b58ae0",
+  RELÍQUIA: "#5cc3ff",
+  RECRUTAMENTO: "#7fb069",
+  ALERTA: "#e08878",
 };
 
 // ─────────────────────────────────────────────
@@ -106,7 +110,7 @@ export default function PainelPrincipal({ session, onSair }) {
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
-        .single();
+        .maybeSingle(); // quem não tem papel cadastrado é jogador
       if (data) setUserRole(data.role);
     }
     if (session?.user?.id) carregarRole();
@@ -278,22 +282,22 @@ export default function PainelPrincipal({ session, onSair }) {
       <div style={s.grain} />
 
       {/* HEADER */}
-      <header style={s.header}>
+      <header className="painel-topo" style={s.header}>
         <div style={s.headerLogo}>
-          <div style={s.logoIcone}>⚔</div>
-          <div>
+          <img src={urlEmblema} alt="" style={s.logoImg} />
+          <div className="painel-marca">
             <div style={s.logoTitulo}>A QUEDA DE UMA ORDEM</div>
             <div style={s.logoSub}>O DESPERTAR DOS SCRIPS</div>
           </div>
         </div>
 
-        <nav style={s.nav}>
+        <nav className="painel-abas" style={s.nav}>
           {ABAS.map((aba) => (
             <button
               key={aba.id}
               style={{
                 ...s.navBtn,
-                color: abaAtiva === aba.id ? "#e8d08a" : "#4a3820",
+                color: abaAtiva === aba.id ? "#e8d08a" : "#9aa7ae",
                 borderBottom:
                   abaAtiva === aba.id
                     ? "2px solid #c4a050"
@@ -312,7 +316,7 @@ export default function PainelPrincipal({ session, onSair }) {
           ))}
         </nav>
 
-        <div style={s.headerPerfil}>
+        <div className="painel-perfil" style={s.headerPerfil}>
           {/* Personagem ativo no header — clique para deselecionar */}
           {personagemSelecionado && (
             <motion.button
@@ -336,7 +340,7 @@ export default function PainelPrincipal({ session, onSair }) {
               style={s.btnSair}
               onClick={onSair}
               onMouseOver={(e) => (e.currentTarget.style.color = "#c4a050")}
-              onMouseOut={(e) => (e.currentTarget.style.color = "#3a2e10")}
+              onMouseOut={(e) => (e.currentTarget.style.color = "#9aa7ae")}
             >
               Sair
             </button>
@@ -345,7 +349,7 @@ export default function PainelPrincipal({ session, onSair }) {
       </header>
 
       {/* CONTEÚDO */}
-      <main style={s.main}>
+      <main className="painel-conteudo" style={s.main}>
         <AnimatePresence mode="wait">
           <motion.div
             key={abaAtiva + (criandoFicha ? "-criando" : "")}
@@ -394,54 +398,28 @@ function ViewInicio({
 
   return (
     <div
+      className={temPersonagem ? "painel-inicio com-lateral" : "painel-inicio"}
       style={{
         ...s.inicioLayout,
-        gridTemplateColumns: temPersonagem ? "1fr 190px" : "1fr",
+        gridTemplateColumns: temPersonagem ? "1fr 220px" : "1fr",
       }}
     >
       {/* COLUNA CENTRAL */}
       <div style={s.inicioCenter}>
         {/* MAPA PERGAMINHO */}
         <div style={s.mapaWrap}>
-          <svg width={0} height={0} style={{ position: "absolute" }}>
-            <defs>
-              <filter id="pergaminho">
-                <feTurbulence
-                  type="fractalNoise"
-                  baseFrequency="0.65"
-                  numOctaves="3"
-                  result="noise"
-                />
-                <feColorMatrix
-                  type="saturate"
-                  values="0"
-                  in="noise"
-                  result="gray"
-                />
-                <feBlend
-                  in="SourceGraphic"
-                  in2="gray"
-                  mode="multiply"
-                  result="blend"
-                />
-                <feComponentTransfer in="blend">
-                  <feFuncR type="linear" slope="0.85" intercept="0.1" />
-                  <feFuncG type="linear" slope="0.72" intercept="0.08" />
-                  <feFuncB type="linear" slope="0.45" intercept="0.04" />
-                </feComponentTransfer>
-              </filter>
-            </defs>
-          </svg>
-
           <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={s.mapaSvg}>
-            <rect width={MAP_W} height={MAP_H} fill="#3d2e1a" />
-            <rect
-              width={MAP_W}
-              height={MAP_H}
-              fill="#b8935a"
-              opacity="0.15"
-              filter="url(#pergaminho)"
-            />
+            <defs>
+              <radialGradient id="mapaLuz" cx="50%" cy="40%" r="70%">
+                <stop offset="0%" stopColor="#13202a" />
+                <stop offset="100%" stopColor="#080c10" />
+              </radialGradient>
+              <radialGradient id="metritoBrilho">
+                <stop offset="0%" stopColor="#5cc3ff" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#5cc3ff" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <rect width={MAP_W} height={MAP_H} fill="url(#mapaLuz)" />
 
             {projecao &&
               [-60, -30, 0, 30, 60].map((lat) => {
@@ -453,7 +431,7 @@ function ViewInicio({
                     y1={y}
                     x2={MAP_W}
                     y2={y}
-                    stroke="rgba(100,70,30,0.2)"
+                    stroke="rgba(232,208,138,0.07)"
                     strokeWidth="0.5"
                     strokeDasharray="3 6"
                   />
@@ -469,7 +447,7 @@ function ViewInicio({
                     y1={0}
                     x2={x}
                     y2={MAP_H}
-                    stroke="rgba(100,70,30,0.2)"
+                    stroke="rgba(232,208,138,0.07)"
                     strokeWidth="0.5"
                     strokeDasharray="3 6"
                   />
@@ -481,11 +459,10 @@ function ViewInicio({
                 <path
                   key={i}
                   d={pathGen(p)}
-                  fill="#c4956a"
-                  stroke="#7a5030"
-                  strokeWidth="0.6"
+                  fill="#18232c"
+                  stroke="rgba(232,208,138,0.28)"
+                  strokeWidth="0.5"
                   strokeLinejoin="round"
-                  filter="url(#pergaminho)"
                 />
               ))}
 
@@ -495,7 +472,7 @@ function ViewInicio({
               width={MAP_W - 8}
               height={MAP_H - 8}
               fill="none"
-              stroke="rgba(160,110,50,0.4)"
+              stroke="rgba(232,208,138,0.25)"
               strokeWidth="1.5"
             />
             <rect
@@ -504,9 +481,28 @@ function ViewInicio({
               width={MAP_W - 16}
               height={MAP_H - 16}
               fill="none"
-              stroke="rgba(160,110,50,0.2)"
+              stroke="rgba(232,208,138,0.1)"
               strokeWidth="0.5"
             />
+
+            {projecao &&
+              (() => {
+                const [mx, my] = projecao(SERRA_DA_CANGALHA);
+                return (
+                  <g>
+                    <title>Serra da Cangalha: onde o meteoro caiu</title>
+                    <motion.circle
+                      cx={mx}
+                      cy={my}
+                      r={13}
+                      fill="url(#metritoBrilho)"
+                      animate={{ r: [10, 16, 10], opacity: [0.5, 0.9, 0.5] }}
+                      transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <circle cx={mx} cy={my} r={2.2} fill="#d8f1ff" />
+                  </g>
+                );
+              })()}
 
             {projecao &&
               ESCOLAS.map((escola, idx) => {
@@ -557,7 +553,7 @@ function ViewInicio({
                       cy={cy}
                       r={hover ? 5 : 3.5}
                       fill={escola.cor}
-                      stroke="#2a1a08"
+                      stroke="#0a0f14"
                       strokeWidth="0.8"
                       style={{ transition: "r 0.2s" }}
                     />
@@ -581,7 +577,7 @@ function ViewInicio({
                           width={124}
                           height={20}
                           rx={3}
-                          fill="rgba(18,10,2,0.92)"
+                          fill="rgba(8,12,16,0.92)"
                           stroke={escola.cor}
                           strokeWidth="0.7"
                         />
@@ -607,14 +603,14 @@ function ViewInicio({
             {/* Rosa dos ventos */}
             <g
               transform={`translate(${MAP_W - 44}, ${MAP_H - 44})`}
-              opacity="0.3"
+              opacity="0.45"
             >
               <line
                 x1="0"
                 y1="-16"
                 x2="0"
                 y2="16"
-                stroke="#7a5030"
+                stroke="rgba(232,208,138,0.7)"
                 strokeWidth="0.7"
               />
               <line
@@ -622,16 +618,16 @@ function ViewInicio({
                 y1="0"
                 x2="16"
                 y2="0"
-                stroke="#7a5030"
+                stroke="rgba(232,208,138,0.7)"
                 strokeWidth="0.7"
               />
-              <polygon points="0,-16 2.5,-7 0,-10 -2.5,-7" fill="#7a5030" />
+              <polygon points="0,-16 2.5,-7 0,-10 -2.5,-7" fill="rgba(232,208,138,0.7)" />
               <text
                 x="0"
                 y="-18"
                 textAnchor="middle"
                 fontSize="6.5"
-                fill="#7a5030"
+                fill="rgba(232,208,138,0.7)"
                 fontFamily="'Palatino Linotype', serif"
               >
                 N
@@ -663,6 +659,9 @@ function ViewInicio({
             <div style={s.feedLinha} />
           </div>
           <div style={s.feedScroll}>
+            {eventos.length === 0 && (
+              <p style={s.feedVazio}>Nenhum evento no momento. Quando a mestre publicar um, ele aparece aqui.</p>
+            )}
             {eventos.map((ev, i) => (
               <motion.div
                 key={ev.id}
@@ -694,6 +693,7 @@ function ViewInicio({
         {temPersonagem && (
           <motion.aside
             key="sidebar"
+            className="painel-lateral"
             style={s.sidebar}
             initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
@@ -831,7 +831,7 @@ function RadarReputacao() {
               y={cy + r * Math.sin(a)}
               textAnchor="middle"
               dominantBaseline="middle"
-              fill="#5a4820"
+              fill="#9aa7ae"
               fontSize="7.5"
               fontFamily="'Palatino Linotype', serif"
               fontWeight="bold"
@@ -945,7 +945,7 @@ function ViewPersonagens({
                     }}
                     onMouseOut={(e) => {
                       e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "#6b5530";
+                      e.currentTarget.style.color = "#b8ae96";
                     }}
                   >
                     {selecionado ? "✓ Selecionado" : "Selecionar"}
@@ -960,7 +960,7 @@ function ViewPersonagens({
                     }}
                     onMouseOut={(e) => {
                       e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "#4a3820";
+                      e.currentTarget.style.color = "#9aa7ae";
                     }}
                   >
                     Ver Ficha →
@@ -969,18 +969,18 @@ function ViewPersonagens({
                     style={{
                       ...s.btnAcederFicha,
                       borderColor: "rgba(139,50,50,0.2)",
-                      color: "#5a2020",
+                      color: "#d07060",
                       flex: "none",
                       padding: "7px 10px",
                     }}
                     onClick={() => onDescartarFicha(ficha)}
                     onMouseOver={(e) => {
                       e.currentTarget.style.background = "rgba(139,50,50,0.1)";
-                      e.currentTarget.style.color = "#8b2020";
+                      e.currentTarget.style.color = "#e08878";
                     }}
                     onMouseOut={(e) => {
                       e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "#5a2020";
+                      e.currentTarget.style.color = "#d07060";
                     }}
                   >
                     ✕
@@ -1011,8 +1011,8 @@ function ViewPersonagens({
                 <div
                   style={{
                     ...s.fichaAtivoTag,
-                    color: "#8b6020",
-                    background: "rgba(139,96,32,0.12)",
+                    color: "#d4a24a",
+                    background: "#0e151b",
                     border: "1px solid rgba(139,96,32,0.3)",
                   }}
                 >
@@ -1020,7 +1020,7 @@ function ViewPersonagens({
                 </div>
 
                 <div style={s.fichaCardHeader}>
-                  <h3 style={{ ...s.fichaNome, color: "#8b6020" }}>
+                  <h3 style={{ ...s.fichaNome, color: "#d4a24a" }}>
                     {ficha.nome_personagem || "Sem nome"}
                   </h3>
                 </div>
@@ -1036,7 +1036,7 @@ function ViewPersonagens({
                   ].map(([l, v]) => (
                     <div key={l} style={s.stat}>
                       <span style={s.statLabel}>{l}</span>
-                      <span style={{ ...s.statValor, color: "#8b6020" }}>
+                      <span style={{ ...s.statValor, color: "#d4a24a" }}>
                         {v ?? "—"}
                       </span>
                     </div>
@@ -1067,16 +1067,16 @@ function ViewPersonagens({
                     style={{
                       ...s.btnAcederFicha,
                       borderColor: "rgba(139,50,50,0.2)",
-                      color: "#6b3030",
+                      color: "#d07060",
                     }}
-                    onClick={() => onDescartarFicha(ficha.id)}
+                    onClick={() => onDescartarFicha(ficha)}
                     onMouseOver={(e) => {
                       e.currentTarget.style.background = "rgba(139,50,50,0.1)";
-                      e.currentTarget.style.color = "#a04040";
+                      e.currentTarget.style.color = "#e08878";
                     }}
                     onMouseOut={(e) => {
                       e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "#6b3030";
+                      e.currentTarget.style.color = "#d07060";
                     }}
                   >
                     Descartar
@@ -1148,7 +1148,7 @@ function ViewInstituto({
             {fichas.length === 0 ? (
               <p
                 style={{
-                  color: "#3a2e10",
+                  color: "#7d8a92",
                   fontSize: "0.8em",
                   letterSpacing: "1px",
                 }}
@@ -1224,9 +1224,9 @@ const s = {
   root: {
     minHeight: "100vh",
     width: "100%",
-    background: "#070906",
+    background: "#0a0f14",
     position: "relative",
-    overflow: "hidden",
+    overflow: "clip",
     fontFamily: "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
     color: "#c4a050",
     display: "flex",
@@ -1236,7 +1236,7 @@ const s = {
     position: "fixed",
     inset: 0,
     background:
-      "radial-gradient(ellipse at 30% 20%, rgba(90,50,10,0.1) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(60,10,10,0.08) 0%, transparent 45%)",
+      "radial-gradient(ellipse at 50% -10%, rgba(92,195,255,0.07) 0%, transparent 55%), radial-gradient(ellipse at 80% 90%, rgba(196,160,80,0.05) 0%, transparent 45%)",
     pointerEvents: "none",
     zIndex: 0,
   },
@@ -1258,7 +1258,7 @@ const s = {
     justifyContent: "space-between",
     padding: "0 20px",
     height: "56px",
-    background: "rgba(5,4,2,0.96)",
+    background: "rgba(6,9,12,0.96)",
     borderBottom: "1px solid rgba(196,160,80,0.13)",
     backdropFilter: "blur(14px)",
     gap: "12px",
@@ -1269,31 +1269,23 @@ const s = {
     gap: "9px",
     flexShrink: 0,
   },
-  logoIcone: {
-    width: 32,
-    height: 32,
-    borderRadius: "50%",
-    border: "1px solid rgba(196,160,80,0.32)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "1em",
-    color: "#c4a050",
-    flexShrink: 0,
-  },
+  logoImg: { height: 36, width: "auto", display: "block", flexShrink: 0 },
   logoTitulo: {
     fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "1.5px",
-    color: "#b89040",
+    color: "#d4b87a",
     whiteSpace: "nowrap",
   },
-  logoSub: { fontSize: "0.43em", letterSpacing: "2.5px", color: "#3a2e10" },
+  logoSub: { fontSize: "0.68em", letterSpacing: "2.5px", color: "#7d8a92" },
   nav: {
     display: "flex",
     alignItems: "center",
     flex: 1,
     justifyContent: "center",
+    minWidth: 0,
+    overflowX: "auto",
+    scrollbarWidth: "none",
   },
   navBtn: {
     padding: "0 12px",
@@ -1302,7 +1294,7 @@ const s = {
     cursor: "pointer",
     transition: "all 0.18s",
     fontFamily: "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
-    fontSize: "0.58em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "1.5px",
     textTransform: "uppercase",
@@ -1325,14 +1317,14 @@ const s = {
     cursor: "pointer",
     fontFamily: "inherit",
   },
-  personagemAtivoIcone: { fontSize: "0.65em", color: "#c4a050" },
+  personagemAtivoIcone: { fontSize: "0.74em", color: "#c4a050" },
   personagemAtivoNome: {
-    fontSize: "0.65em",
+    fontSize: "0.74em",
     fontWeight: 700,
     color: "#c4a050",
     letterSpacing: "0.5px",
   },
-  personagemAtivoX: { fontSize: "0.7em", color: "#5a4820", marginLeft: "2px" },
+  personagemAtivoX: { fontSize: "0.7em", color: "#9aa7ae", marginLeft: "2px" },
   perfilIcone: {
     width: 30,
     height: 30,
@@ -1346,17 +1338,21 @@ const s = {
     background: "rgba(196,160,80,0.04)",
   },
   perfilNome: {
-    fontSize: "0.65em",
+    fontSize: "0.74em",
     fontWeight: 700,
     letterSpacing: "1px",
-    color: "#9a7a30",
+    color: "#d4b87a",
+    maxWidth: "140px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   btnSair: {
     background: "none",
     border: "none",
-    color: "#3a2e10",
+    color: "#7d8a92",
     fontFamily: "inherit",
-    fontSize: "0.58em",
+    fontSize: "0.68em",
     cursor: "pointer",
     letterSpacing: "1px",
     padding: 0,
@@ -1389,31 +1385,31 @@ const s = {
   mapaWrap: {
     borderRadius: "7px",
     overflow: "hidden",
-    border: "1px solid rgba(160,110,50,0.32)",
-    boxShadow: "0 12px 40px rgba(0,0,0,0.7), inset 0 0 50px rgba(30,15,0,0.4)",
-    background: "#3d2e1a",
+    border: "1px solid rgba(232,208,138,0.18)",
+    boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
+    background: "#080c10",
   },
   mapaSvg: { width: "100%", display: "block" },
   mapaLabel: {
     textAlign: "center",
-    fontSize: "0.62em",
+    fontSize: "0.74em",
     fontWeight: 700,
     letterSpacing: "2px",
     textTransform: "uppercase",
     padding: "5px 0",
     height: 22,
     transition: "color 0.25s",
-    background: "rgba(18,10,2,0.8)",
+    background: "rgba(8,12,16,0.8)",
   },
 
   // Feed
   feedWrap: { display: "flex", flexDirection: "column", gap: "9px" },
   feedTitulo: { display: "flex", alignItems: "center", gap: "10px" },
   feedTituloTexto: {
-    fontSize: "0.52em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "3px",
-    color: "#4a3820",
+    color: "#9aa7ae",
     whiteSpace: "nowrap",
     textTransform: "uppercase",
   },
@@ -1430,11 +1426,12 @@ const s = {
     scrollbarWidth: "thin",
     scrollbarColor: "rgba(196,160,80,0.15) transparent",
   },
+  feedVazio: { margin: 0, fontSize: "0.8em", color: "#9aa7ae", fontStyle: "italic", padding: "6px 0" },
   feedCard: {
     flexShrink: 0,
     width: "195px",
     padding: "12px",
-    background: "rgba(10,12,6,0.85)",
+    background: "rgba(12,17,22,0.85)",
     border: "1px solid rgba(196,160,80,0.09)",
     borderRadius: "5px",
     display: "flex",
@@ -1444,7 +1441,7 @@ const s = {
     transition: "box-shadow 0.25s",
   },
   feedTipo: {
-    fontSize: "0.55em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "1px",
     border: "1px solid",
@@ -1461,14 +1458,14 @@ const s = {
   },
   feedCardDesc: {
     margin: 0,
-    fontSize: "0.62em",
-    color: "#4a3820",
+    fontSize: "0.74em",
+    color: "#9aa7ae",
     lineHeight: 1.5,
   },
 
   // Sidebar
   sidebar: {
-    width: "190px",
+    width: "100%",
     flexShrink: 0,
     display: "flex",
     flexDirection: "column",
@@ -1490,22 +1487,22 @@ const s = {
     letterSpacing: "0.5px",
   },
   sidebarPersonagemLinhagem: {
-    fontSize: "0.6em",
-    color: "#5a4820",
+    fontSize: "0.74em",
+    color: "#9aa7ae",
     letterSpacing: "0.5px",
   },
   sidebarCard: {
     padding: "14px",
-    background: "rgba(10,12,6,0.85)",
+    background: "rgba(12,17,22,0.85)",
     border: "1px solid rgba(196,160,80,0.09)",
     borderRadius: "7px",
   },
   sidebarTitulo: {
     margin: "0 0 7px",
-    fontSize: "0.55em",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "3px",
-    color: "#4a3820",
+    color: "#9aa7ae",
     textTransform: "uppercase",
   },
   sidebarDiv: {
@@ -1523,12 +1520,12 @@ const s = {
   },
   objetivoItem: { display: "flex", gap: "7px", alignItems: "flex-start" },
   objetivoNum: {
-    fontSize: "0.62em",
+    fontSize: "0.74em",
     color: "#c4a050",
     fontWeight: 700,
     flexShrink: 0,
   },
-  objetivoTexto: { fontSize: "0.68em", color: "#6b5530", lineHeight: 1.4 },
+  objetivoTexto: { fontSize: "0.68em", color: "#b8ae96", lineHeight: 1.4 },
   patenteBadge: {
     display: "flex",
     flexDirection: "column",
@@ -1537,12 +1534,12 @@ const s = {
     padding: "6px 0",
   },
   patenteNome: {
-    fontSize: "0.65em",
+    fontSize: "0.74em",
     fontWeight: 700,
     letterSpacing: "2px",
     color: "#c4a050",
   },
-  patenteNivel: { fontSize: "0.58em", color: "#4a3820", letterSpacing: "1px" },
+  patenteNivel: { fontSize: "0.68em", color: "#9aa7ae", letterSpacing: "1px" },
 
   // PERSONAGENS view
   viewPersonagens: {
@@ -1556,17 +1553,17 @@ const s = {
   viewHeader: { display: "flex", alignItems: "center", gap: "14px" },
   viewTitulo: {
     margin: 0,
-    fontSize: "0.62em",
+    fontSize: "0.74em",
     fontWeight: 700,
     letterSpacing: "4px",
-    color: "#52421e",
+    color: "#d4b87a",
     textTransform: "uppercase",
     whiteSpace: "nowrap",
   },
   viewSub: {
     margin: 0,
     fontSize: "0.75em",
-    color: "#4a3820",
+    color: "#9aa7ae",
     textAlign: "center",
   },
   secaoLinha: {
@@ -1576,13 +1573,13 @@ const s = {
   },
   fichasGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
     gap: "18px",
   },
   fichaCard: {
     padding: "22px",
     position: "relative",
-    background: "rgba(10,12,6,0.88)",
+    background: "rgba(12,17,22,0.88)",
     border: "1px solid",
     borderRadius: "9px",
     display: "flex",
@@ -1592,14 +1589,14 @@ const s = {
   },
   fichaAtivoTag: {
     position: "absolute",
-    top: "10px",
-    right: "10px",
-    fontSize: "0.52em",
+    top: "-10px",
+    right: "14px",
+    fontSize: "0.68em",
     fontWeight: 700,
     letterSpacing: "2px",
     color: "#c4a050",
-    background: "rgba(196,160,80,0.1)",
-    border: "1px solid rgba(196,160,80,0.25)",
+    background: "#0e151b",
+    border: "1px solid rgba(196,160,80,0.45)",
     padding: "2px 7px",
     borderRadius: "3px",
   },
@@ -1615,7 +1612,7 @@ const s = {
     transition: "color 0.3s",
   },
   fichaNivel: {
-    fontSize: "0.6em",
+    fontSize: "0.74em",
     fontWeight: 700,
     background: "rgba(196,160,80,0.1)",
     border: "1px solid rgba(196,160,80,0.25)",
@@ -1627,7 +1624,7 @@ const s = {
   fichaLinhagem: {
     margin: 0,
     fontSize: "0.7em",
-    color: "#6b5530",
+    color: "#b8ae96",
     letterSpacing: "0.5px",
   },
   fichaStats: {
@@ -1646,8 +1643,8 @@ const s = {
     border: "1px solid rgba(196,160,80,0.07)",
   },
   statLabel: {
-    fontSize: "0.52em",
-    color: "#4a3820",
+    fontSize: "0.68em",
+    color: "#9aa7ae",
     letterSpacing: "1px",
     fontWeight: 700,
   },
@@ -1656,7 +1653,7 @@ const s = {
     flex: 1,
     background: "transparent",
     border: "1px solid rgba(196,160,80,0.2)",
-    color: "#6b5530",
+    color: "#b8ae96",
     fontFamily: "inherit",
     padding: "7px 0",
     borderRadius: "4px",
@@ -1671,7 +1668,7 @@ const s = {
     flex: 1,
     background: "transparent",
     border: "1px solid rgba(196,160,80,0.1)",
-    color: "#4a3820",
+    color: "#9aa7ae",
     fontFamily: "inherit",
     padding: "7px 0",
     borderRadius: "4px",
@@ -1684,7 +1681,7 @@ const s = {
   },
   fichaCardVazio: {
     padding: "22px",
-    background: "rgba(8,10,5,0.5)",
+    background: "rgba(10,14,18,0.5)",
     border: "1px dashed rgba(196,160,80,0.12)",
     borderRadius: "9px",
     display: "flex",
@@ -1698,7 +1695,7 @@ const s = {
   fichaVazioIcone: { fontSize: "1.8em", color: "rgba(196,160,80,0.18)" },
   fichaVazioTexto: {
     fontSize: "0.7em",
-    color: "#3a2e10",
+    color: "#7d8a92",
     letterSpacing: "1px",
   },
 
@@ -1715,7 +1712,7 @@ const s = {
     width: "100%",
     textAlign: "center",
     padding: "44px 36px",
-    background: "rgba(10,12,6,0.88)",
+    background: "rgba(12,17,22,0.88)",
     border: "1px solid rgba(196,160,80,0.14)",
     borderRadius: "12px",
     boxShadow: "0 20px 50px rgba(0,0,0,0.6)",
@@ -1739,7 +1736,7 @@ const s = {
   institutoSelecaoSub: {
     margin: 0,
     fontSize: "0.78em",
-    color: "#5a4820",
+    color: "#9aa7ae",
     lineHeight: 1.7,
     maxWidth: "360px",
   },
@@ -1772,8 +1769,8 @@ const s = {
     letterSpacing: "0.5px",
   },
   institutoSlotLinhagem: {
-    fontSize: "0.65em",
-    color: "#5a4820",
+    fontSize: "0.74em",
+    color: "#9aa7ae",
     marginTop: "2px",
     letterSpacing: "0.3px",
   },
@@ -1794,13 +1791,13 @@ const s = {
     fontSize: "0.88em",
     fontWeight: 700,
     letterSpacing: "3px",
-    color: "#52421e",
+    color: "#d4b87a",
     textTransform: "uppercase",
   },
   emConstrucaoTexto: {
     margin: 0,
     fontSize: "0.75em",
-    color: "#3a2e10",
+    color: "#7d8a92",
     letterSpacing: "0.5px",
   },
 };
