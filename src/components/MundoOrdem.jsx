@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import urlRelevo from "../assets/terreno/relevo.png";
+import urlRelevoAntes from "../assets/terreno/relevo-antes.png";
+import urlCorAntes from "../assets/terreno/cor-antes.jpg";
 import urlCor from "../assets/terreno/cor.jpg";
 import urlNormal from "../assets/terreno/normal.jpg";
 import urlBrilho from "../assets/terreno/brilho.png";
@@ -35,10 +37,6 @@ const ALT_REF = infoTerreno.altitude_min + 120;
 // do emblema, até existir a arte dos personagens.
 const IMAGEM_CLASSE = { terra: urlTerra, fogo: urlFogo, agua: urlAgua, mente: urlMente, todos: urlTodos };
 const CLASSE_DA_ESCOLA = { primordiais: "terra", colossos: "fogo", mentalistas: "mente", eter: "todos" };
-
-// Antes do impacto a Terra é plana, nesta altura e nesta cor; a onda de choque levanta o relevo
-const PLANO = 0.45;
-const COR_PLANA = new THREE.Color(0.5, 0.5, 0.45); // escurece o chão antes do impacto
 
 const CENTRO = new THREE.Vector3((infoTerreno.centro[0] - 0.5) * LADO, 0, (infoTerreno.centro[1] - 0.5) * LADO);
 
@@ -93,8 +91,11 @@ function carregarRelevo() {
     return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
   };
   const faixa = infoTerreno.altitude_max - infoTerreno.altitude_min;
-  return Promise.all([ler(urlRelevo, true), ler(urlBrilho, false)]).then(([rel, bri]) => ({
-    altura: (x, z) => ((infoTerreno.altitude_min + amostra(rel, x, z) * faixa - ALT_REF) / 1000) * EXAGERO,
+  const emKm = (v) => ((infoTerreno.altitude_min + v * faixa - ALT_REF) / 1000) * EXAGERO;
+  return Promise.all([ler(urlRelevo, true), ler(urlRelevoAntes, true), ler(urlBrilho, false)]).then(([rel, antes, bri]) => ({
+    altura: (x, z) => emKm(amostra(rel, x, z)),
+    // antes do impacto: sem a cratera (relevo de uma área vizinha no lugar dela)
+    alturaAntes: (x, z) => emKm(amostra(antes, x, z)),
     brilho: (x, z) => amostra(bri, x, z),
   }));
 }
@@ -309,14 +310,14 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
     let matTerreno = null;
     let relevo = null;
     let chaoCentro = 0;
+    let chaoAntes = 0;
     // O brilho do Metrito se espalha do centro para fora (raio em km), e a onda de choque
     // transforma a Terra plana no relevo real conforme passa (frente, em km)
     const uMetrito = {
       raio: { value: 0 },
       centro: { value: new THREE.Vector2(CENTRO.x, CENTRO.z) },
       frente: { value: 0 },
-      plano: { value: PLANO },
-      corPlana: { value: COR_PLANA },
+      mapaAntes: { value: null },
     };
 
     function montarTerreno(r) {
@@ -327,6 +328,10 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       cor.anisotropy = renderer.capabilities.getMaxAnisotropy();
       const normal = g(carregador.load(urlNormal));
       const luzMetrito = g(carregador.load(urlBrilho));
+      const corAntes = g(carregador.load(urlCorAntes));
+      corAntes.colorSpace = THREE.SRGBColorSpace;
+      corAntes.anisotropy = cor.anisotropy;
+      uMetrito.mapaAntes.value = corAntes;
       matTerreno = g(
         new THREE.MeshStandardMaterial({
           map: cor,
@@ -344,15 +349,14 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
           raioMetrito: uMetrito.raio,
           centroMetrito: uMetrito.centro,
           frenteOnda: uMetrito.frente,
-          plano: uMetrito.plano,
-          corPlana: uMetrito.corPlana,
+          mapaAntes: uMetrito.mapaAntes,
         });
         shader.vertexShader = shader.vertexShader
           .replace(
             "#include <common>",
             `#include <common>
-            attribute float alturaReal;
-            uniform vec2 centroMetrito; uniform float frenteOnda; uniform float plano;
+            attribute float alturaReal; attribute vec3 normalReal;
+            uniform vec2 centroMetrito; uniform float frenteOnda;
             varying vec3 vPosMundo; varying float vTransformado; varying float vCrista;`,
           )
           .replace(
@@ -362,12 +366,12 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
             // 1 onde a onda já passou; na frente, uma crista de terra levantada
             float transformado = smoothstep(frenteOnda, frenteOnda - 2.5, distImpacto) * step(0.001, frenteOnda);
             float crista = exp(-pow((distImpacto - frenteOnda) / 0.8, 2.0)) * step(0.001, frenteOnda) * (1.0 - smoothstep(16.0, 21.0, frenteOnda));
-            objectNormal = normalize(mix(vec3(0.0, 1.0, 0.0), objectNormal, transformado));`,
+            objectNormal = normalize(mix(objectNormal, normalReal, transformado));`,
           )
           .replace(
             "#include <begin_vertex>",
             `#include <begin_vertex>
-            transformed.y = mix(plano, alturaReal, transformado) + crista * 0.55;
+            transformed.y = mix(position.y, alturaReal, transformado) + crista * 0.55;
             vTransformado = transformado;
             vCrista = crista;`,
           )
@@ -377,14 +381,13 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
             "#include <common>",
             `#include <common>
             varying vec3 vPosMundo; varying float vTransformado; varying float vCrista;
-            uniform float raioMetrito; uniform vec2 centroMetrito; uniform vec3 corPlana;`,
+            uniform float raioMetrito; uniform vec2 centroMetrito; uniform sampler2D mapaAntes;`,
           )
           .replace(
             "#include <map_fragment>",
             `#include <map_fragment>
-            // antes da onda: chão de cerrado sem cratera (um canto da textura, ampliado e escurecido)
-            vec3 chaoPlano = texture2D(map, vMapUv * 0.4 + vec2(0.03, 0.57)).rgb * corPlana * 2.4;
-            diffuseColor.rgb = mix(chaoPlano, diffuseColor.rgb, vTransformado);`,
+            // antes da onda: a cor do relevo sem a cratera
+            diffuseColor.rgb = mix(texture2D(mapaAntes, vMapUv).rgb, diffuseColor.rgb, vTransformado);`,
           )
           .replace(
             "#include <normal_fragment_maps>",
@@ -409,15 +412,17 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       const geo = g(new THREE.PlaneGeometry(LADO, LADO, divisoes, divisoes));
       geo.rotateX(-Math.PI / 2);
       const pos = geo.attributes.position;
-      // As normais são calculadas com o relevo real; a posição começa plana e o shader
-      // troca para alturaReal conforme a onda de choque passa
+      // A posição é o relevo de antes do impacto; o relevo real (altura e normais) vai em
+      // atributos e o shader troca um pelo outro conforme a onda de choque passa
       const alturas = new Float32Array(pos.count);
       for (let i = 0; i < pos.count; i++) {
         alturas[i] = r.altura(pos.getX(i), pos.getZ(i));
         pos.setY(i, alturas[i]);
       }
       geo.computeVertexNormals();
-      for (let i = 0; i < pos.count; i++) pos.setY(i, PLANO);
+      geo.setAttribute("normalReal", geo.attributes.normal.clone());
+      for (let i = 0; i < pos.count; i++) pos.setY(i, r.alturaAntes(pos.getX(i), pos.getZ(i)));
+      geo.computeVertexNormals();
       geo.setAttribute("alturaReal", new THREE.BufferAttribute(alturas, 1));
       geo.computeBoundingSphere();
       geo.boundingSphere.radius += 3;
@@ -448,6 +453,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       mundo.add(poeira);
 
       chaoCentro = r.altura(CENTRO.x, CENTRO.z);
+      chaoAntes = r.alturaAntes(CENTRO.x, CENTRO.z);
       nucleo.position.set(CENTRO.x, chaoCentro + 0.35, CENTRO.z);
       metrito.position.set(CENTRO.x, chaoCentro + 0.9, CENTRO.z);
       feixeQueda.position.set(CENTRO.x, chaoCentro + 20, CENTRO.z);
@@ -628,7 +634,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       const luzCeu = suave(0.9, 1.7, s);
       ceu.atualizar(t, renderer.getPixelRatio(), luzCeu, suave(2.4, 3, s));
       bigBang.atualizar(s, t, renderer.getPixelRatio());
-      meteoro.atualizar(s, ORIGEM_METEORO, CENTRO.clone().setY(PLANO + 0.1));
+      meteoro.atualizar(s, ORIGEM_METEORO, CENTRO.clone().setY(chaoAntes + 0.1));
       uMetrito.frente.value = frenteOnda(s);
       ponteiroEmblema.set(Math.abs(ponteiro.x) > 1 ? 0 : ponteiro.x, Math.abs(ponteiro.y) > 1 ? 0 : ponteiro.y);
       emblema.atualizar(s, t, camera, ponteiroEmblema);
@@ -811,7 +817,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
     mundoRef.current = { montarEscolas, fecharEscola };
     let fechado = false;
     carregarRelevo()
-      .catch(() => ({ altura: () => 0, brilho: () => 0 }))
+      .catch(() => ({ altura: () => 0, alturaAntes: () => 0, brilho: () => 0 }))
       .then((r) => {
         if (!fechado) montarTerreno(r);
       });

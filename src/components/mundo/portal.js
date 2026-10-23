@@ -27,21 +27,25 @@ const fragment = `
     float giro = ang + tempo * 0.9 + (1.0 - r) * 2.5;
     float n = fbm(vec2(cos(giro), sin(giro)) * 2.2 + vec2(r * 5.0 - tempo * 1.4, tempo * 0.3));
     float fios = pow(abs(sin(giro * 3.0 + n * 6.0)), 6.0);
-    float faixa = smoothstep(R + 0.38 * abertura, R, r) * smoothstep(R - 0.06, R + 0.02, r);
-    float energia = faixa * (0.35 + n * 1.1 + fios * 0.8) * abertura;
+    // a faixa de energia entra um pouco no disco, para borda e centro parecerem uma coisa só
+    float faixa = smoothstep(R + 0.38 * abertura, R, r) * smoothstep(R - 0.2, R + 0.03, r);
+    float energia = faixa * (0.45 + n * 0.9 + fios * 0.5) * abertura;
 
     // dentro: a imagem, com uma leve torção perto da borda
-    float dentro = smoothstep(R, R - 0.04, r) * step(0.001, abertura);
+    float dentro = smoothstep(R + 0.02, R - 0.16, r) * step(0.001, abertura);
     float tor = pow(clamp(r / max(R, 0.001), 0.0, 1.0), 3.0) * 0.35 * sin(tempo * 0.7);
     vec2 q = mat2(cos(tor), -sin(tor), sin(tor), cos(tor)) * p;
     vec2 uvImg = q / max(R, 0.001) * 0.58 + 0.5;
     vec4 img = texture2D(imagem, uvImg);
-    vec3 fundo = mix(mix(cor, vec3(1.0), 0.2) * 0.45, vec3(0.03, 0.04, 0.06), smoothstep(0.0, R, r)) + cor * 0.2 * fbm(q * 3.0 + tempo * 0.2);
-    vec3 interior = mix(fundo, img.rgb * 1.3, img.a);
+    // fundo do disco na cor da escola, mais claro no meio, com o mesmo redemoinho da borda
+    float rodamoinho = fbm(vec2(cos(giro), sin(giro)) * 1.6 + vec2(r * 3.0 - tempo * 0.6, tempo * 0.2));
+    vec3 fundo = cor * mix(0.95, 0.6, smoothstep(0.0, R, r)) + cor * 0.35 * (rodamoinho - 0.5);
+    vec3 traco = mix(img.rgb, vec3(1.0), 0.5) * 1.25; // o desenho da classe, claro sobre o fundo
+    vec3 interior = mix(fundo, traco, img.a);
 
-    vec3 viva = mix(cor, vec3(1.0), 0.35);
-    vec3 c = interior * dentro + mix(viva, vec3(1.0), clamp(n * 0.6 + fios * 0.4, 0.0, 1.0)) * energia * 2.2;
-    float a = clamp(dentro * 0.96 + energia, 0.0, 1.0);
+    vec3 anel = cor * (0.85 + n * 0.6) + vec3(1.0) * fios * 0.22;
+    vec3 c = interior * dentro + anel * energia * 1.3;
+    float a = clamp(dentro * 0.97 + energia, 0.0, 1.0);
 
     // granulado de filme, como no Overworld: ruído por pixel que muda a cada quadro
     float grao = hash(floor(gl_FragCoord.xy * 0.7) + floor(tempo * 24.0) * vec2(17.0, 31.0)) - 0.5;

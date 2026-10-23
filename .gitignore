@@ -25,3 +25,4 @@ dist-ssr
 
 # cache do relevo baixado por scripts/gerar_terreno.py
 arte/relevo-cangalha.npy
+arte/relevo-vizinho.npy
