@@ -158,7 +158,7 @@ r_px = np.hypot(xx - ccx, yy - ccy)
 bacia = 1 - suave(r_anel * 0.55, r_anel * 1.0, r_px)
 fino = liso - borrar(liso, 4)
 veios = suave(-2.5, -7, fino) * (1 - suave(r_anel * 1.2, r_anel * 4, r_px))
-brilho = np.clip(bacia * 0.9 + veios * 0.45, 0, 1)
+brilho = np.clip(bacia * 0.9 + veios * 0.22, 0, 1)
 Image.fromarray((borrar(brilho, 1.5).clip(0, 1) * 255).astype(np.uint8)).save(SAIDA / "brilho.png", optimize=True)
 
 info = {

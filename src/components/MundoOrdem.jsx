@@ -9,7 +9,7 @@ import urlEmblema from "../assets/emblema-titulo.png";
 import { criarCeu } from "./mundo/ceu";
 import { criarArvores } from "./mundo/arvores";
 import { criarPortal } from "./mundo/portal";
-import { criarBigBang, criarMeteoro, criarTochas, criarEmblemaCeu, suave } from "./mundo/historia";
+import { criarBigBang, criarMeteoro, criarTochas, criarEmblemaCeu, frenteOnda, suave } from "./mundo/historia";
 import urlTerra from "../assets/classes/terra.png";
 import urlFogo from "../assets/classes/fogo.png";
 import urlAgua from "../assets/classes/agua.png";
@@ -28,12 +28,16 @@ const NOITE = "#0a0f14";
 const OURO = "#e8c96a";
 const AZUL = "#5cc3ff";
 const LADO = infoTerreno.km; // 1 unidade = 1 km
-const EXAGERO = 5; // o relevo real é baixo para o tamanho da cratera
+const EXAGERO = 3.5; // o relevo real é baixo para o tamanho da cratera
 const ALT_REF = infoTerreno.altitude_min + 120;
 // Imagem dentro do portal de cada escola. Provisório: os ícones de classe da arte
 // do emblema, até existir a arte dos personagens.
 const IMAGEM_CLASSE = { terra: urlTerra, fogo: urlFogo, agua: urlAgua, mente: urlMente, todos: urlTodos };
 const CLASSE_DA_ESCOLA = { primordiais: "terra", colossos: "fogo", mentalistas: "mente", eter: "todos" };
+
+// Antes do impacto a Terra é plana, nesta altura e nesta cor; a onda de choque levanta o relevo
+const PLANO = 0.45;
+const COR_PLANA = new THREE.Color(0.5, 0.5, 0.45); // escurece o chão antes do impacto
 
 const CENTRO = new THREE.Vector3((infoTerreno.centro[0] - 0.5) * LADO, 0, (infoTerreno.centro[1] - 0.5) * LADO);
 
@@ -201,34 +205,6 @@ function criarSom() {
   sinoTimer = setTimeout(sino, 3000);
 
   return {
-    /** Estrondo grave: o Big Bang e o impacto do meteoro. */
-    estrondo(forca = 1) {
-      if (ctx.state === "suspended") return;
-      const agora = ctx.currentTime;
-      const o = ctx.createOscillator();
-      o.type = "sine";
-      o.frequency.setValueAtTime(70, agora);
-      o.frequency.exponentialRampToValueAtTime(24, agora + 2.5);
-      const go = ctx.createGain();
-      go.gain.setValueAtTime(0.0001, agora);
-      go.gain.exponentialRampToValueAtTime(0.9 * forca, agora + 0.05);
-      go.gain.exponentialRampToValueAtTime(0.0001, agora + 3);
-      o.connect(go).connect(mestre);
-      o.start(agora);
-      o.stop(agora + 3.1);
-      const r = ctx.createBufferSource();
-      r.buffer = buf;
-      const f = ctx.createBiquadFilter();
-      f.type = "lowpass";
-      f.frequency.setValueAtTime(1800, agora);
-      f.frequency.exponentialRampToValueAtTime(120, agora + 2);
-      const gr = ctx.createGain();
-      gr.gain.setValueAtTime(0.5 * forca, agora);
-      gr.gain.exponentialRampToValueAtTime(0.0001, agora + 2.2);
-      r.connect(f).connect(gr).connect(mestre);
-      r.start(agora);
-      r.stop(agora + 2.3);
-    },
     ligar(on) {
       if (ctx.state === "suspended") ctx.resume();
       mestre.gain.cancelScheduledValues(ctx.currentTime);
@@ -377,11 +353,14 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       geoFragmento.computeVertexNormals();
     }
     const matFragmento = g(new THREE.MeshStandardMaterial({ color: "#7d776a", roughness: 0.95, flatShading: true }));
+    // Cada fragmento tem dois lugares: na coluna sobre o impacto e numa órbita em volta
+    // do emblema, para onde vai quando o emblema aparece (e onde dá para girá-los arrastando)
     const fragmentos = [];
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 24; i++) {
       const f = new THREE.Mesh(geoFragmento, matFragmento);
-      const subida = i / 15;
+      const subida = i / 23;
       f.userData.base = new THREE.Vector3((Math.random() - 0.5) * (0.8 + subida * 1.6), 2.4 + subida * 11 + Math.random() * 0.6, (Math.random() - 0.5) * 1.6);
+      f.userData.orbita = { ang: (i / 24) * Math.PI * 2 + Math.random() * 0.3, raio: 4.2 + Math.random() * 2.2, altura: (Math.random() - 0.5) * 6.5 };
       f.scale.setScalar(0.1 + Math.random() * 0.3 * (1 - subida * 0.6));
       f.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
       f.userData.fase = i;
@@ -403,8 +382,15 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
     let matTerreno = null;
     let relevo = null;
     let chaoCentro = 0;
-    // O brilho do Metrito se espalha do centro para fora (raio em km)
-    const uMetrito = { raio: { value: 0 }, centro: { value: new THREE.Vector2(CENTRO.x, CENTRO.z) } };
+    // O brilho do Metrito se espalha do centro para fora (raio em km), e a onda de choque
+    // transforma a Terra plana no relevo real conforme passa (frente, em km)
+    const uMetrito = {
+      raio: { value: 0 },
+      centro: { value: new THREE.Vector2(CENTRO.x, CENTRO.z) },
+      frente: { value: 0 },
+      plano: { value: PLANO },
+      corPlana: { value: COR_PLANA },
+    };
 
     function montarTerreno(r) {
       relevo = r;
@@ -427,24 +413,87 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
         }),
       );
       matTerreno.onBeforeCompile = (shader) => {
-        shader.uniforms.raioMetrito = uMetrito.raio;
-        shader.uniforms.centroMetrito = uMetrito.centro;
+        Object.assign(shader.uniforms, {
+          raioMetrito: uMetrito.raio,
+          centroMetrito: uMetrito.centro,
+          frenteOnda: uMetrito.frente,
+          plano: uMetrito.plano,
+          corPlana: uMetrito.corPlana,
+        });
         shader.vertexShader = shader.vertexShader
-          .replace("#include <common>", "#include <common>\nvarying vec3 vPosMundo;")
+          .replace(
+            "#include <common>",
+            `#include <common>
+            attribute float alturaReal;
+            uniform vec2 centroMetrito; uniform float frenteOnda; uniform float plano;
+            varying vec3 vPosMundo; varying float vTransformado; varying float vCrista;`,
+          )
+          .replace(
+            "#include <beginnormal_vertex>",
+            `#include <beginnormal_vertex>
+            float distImpacto = distance(position.xz, centroMetrito);
+            // 1 onde a onda já passou; na frente, uma crista de terra levantada
+            float transformado = smoothstep(frenteOnda, frenteOnda - 2.5, distImpacto) * step(0.001, frenteOnda);
+            float crista = exp(-pow((distImpacto - frenteOnda) / 0.8, 2.0)) * step(0.001, frenteOnda) * (1.0 - smoothstep(16.0, 21.0, frenteOnda));
+            objectNormal = normalize(mix(vec3(0.0, 1.0, 0.0), objectNormal, transformado));`,
+          )
+          .replace(
+            "#include <begin_vertex>",
+            `#include <begin_vertex>
+            transformed.y = mix(plano, alturaReal, transformado) + crista * 0.55;
+            vTransformado = transformado;
+            vCrista = crista;`,
+          )
           .replace("#include <project_vertex>", "#include <project_vertex>\nvPosMundo = (modelMatrix * vec4(transformed, 1.0)).xyz;");
         shader.fragmentShader = shader.fragmentShader
-          .replace("#include <common>", "#include <common>\nvarying vec3 vPosMundo;\nuniform float raioMetrito;\nuniform vec2 centroMetrito;")
+          .replace(
+            "#include <common>",
+            `#include <common>
+            varying vec3 vPosMundo; varying float vTransformado; varying float vCrista;
+            uniform float raioMetrito; uniform vec2 centroMetrito; uniform vec3 corPlana;`,
+          )
+          .replace(
+            "#include <map_fragment>",
+            `#include <map_fragment>
+            // antes da onda: chão de cerrado sem cratera (um canto da textura, ampliado e escurecido)
+            vec3 chaoPlano = texture2D(map, vMapUv * 0.4 + vec2(0.03, 0.57)).rgb * corPlana * 2.4;
+            diffuseColor.rgb = mix(chaoPlano, diffuseColor.rgb, vTransformado);`,
+          )
+          .replace(
+            "#include <normal_fragment_maps>",
+            "#include <normal_fragment_maps>\nnormal = normalize(mix(normalize(vNormal), normal, vTransformado));",
+          )
           .replace(
             "#include <emissivemap_fragment>",
-            "#include <emissivemap_fragment>\ntotalEmissiveRadiance *= smoothstep(raioMetrito, raioMetrito - 1.2, distance(vPosMundo.xz, centroMetrito));",
+            `#include <emissivemap_fragment>
+            totalEmissiveRadiance *= smoothstep(raioMetrito, raioMetrito - 1.2, distance(vPosMundo.xz, centroMetrito)) * vTransformado;
+            // a frente da onda brilha como poeira levantada pelo impacto
+            totalEmissiveRadiance += vec3(0.32, 0.27, 0.2) * vCrista * 0.35;`,
+          )
+          .replace(
+            "#include <fog_fragment>",
+            `#include <fog_fragment>
+            #ifdef USE_FOG
+              gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, smoothstep(14.5, 18.5, distance(vPosMundo.xz, centroMetrito)));
+            #endif`,
           );
       };
       const divisoes = estreito ? 170 : 256;
       const geo = g(new THREE.PlaneGeometry(LADO, LADO, divisoes, divisoes));
       geo.rotateX(-Math.PI / 2);
       const pos = geo.attributes.position;
-      for (let i = 0; i < pos.count; i++) pos.setY(i, r.altura(pos.getX(i), pos.getZ(i)));
+      // As normais são calculadas com o relevo real; a posição começa plana e o shader
+      // troca para alturaReal conforme a onda de choque passa
+      const alturas = new Float32Array(pos.count);
+      for (let i = 0; i < pos.count; i++) {
+        alturas[i] = r.altura(pos.getX(i), pos.getZ(i));
+        pos.setY(i, alturas[i]);
+      }
       geo.computeVertexNormals();
+      for (let i = 0; i < pos.count; i++) pos.setY(i, PLANO);
+      geo.setAttribute("alturaReal", new THREE.BufferAttribute(alturas, 1));
+      geo.computeBoundingSphere();
+      geo.boundingSphere.radius += 3;
       mundo.add(new THREE.Mesh(geo, matTerreno));
 
       // Poeira de Metrito subindo da bacia do impacto
@@ -598,9 +647,11 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
     let tAnterior = 0;
     let progresso = 0;
     let s = 0; // posição suavizada na história
-    let sAnterior = 0;
-    let giro = 0;
-    let giroAlvo = 0;
+    let giroPedras = 0;
+    let velocidadePedras = 0.12;
+    const colunaPos = new THREE.Vector3();
+    const orbitaPos = new THREE.Vector3();
+    const ponteiroEmblema = new THREE.Vector2();
     let arrastando = null;
     let quadro = 0;
     let visivel = true;
@@ -610,7 +661,6 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
     const tela = new THREE.Vector3();
     const posCam = new THREE.Vector3();
     const alvoCamera = new THREE.Vector3();
-    const eixoY = new THREE.Vector3(0, 1, 0);
 
     function lerScroll() {
       const r = secao.getBoundingClientRect();
@@ -626,10 +676,6 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       posCam.lerpVectors(a.pos, b.pos, k);
       alvoCamera.lerpVectors(a.alvo, b.alvo, k);
 
-      // no fim da história dá para girar arrastando e abrir as escolas com clique
-      const livre = suave(FINAL - 0.4, FINAL, s);
-      const ang = giro * livre;
-      posCam.sub(CENTRO).applyAxisAngle(eixoY, ang).add(CENTRO);
       mistura += ((escolaAberta ? 1 : 0) - mistura) * (reduz ? 1 : 1 - Math.exp(-dt * 1.8));
       if (escolaAberta) {
         const p = poseEscola(escolaAberta);
@@ -651,12 +697,14 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       mundo.visible = terra > 0.01;
     }
 
-    function atualizarHistoria(t) {
+    function atualizarHistoria(t, dt) {
       const luzCeu = suave(0.9, 1.7, s);
       ceu.atualizar(t, renderer.getPixelRatio(), luzCeu, suave(2.4, 3, s));
       bigBang.atualizar(s, t, renderer.getPixelRatio());
-      meteoro.atualizar(s, ORIGEM_METEORO, CENTRO.clone().setY(chaoCentro + 0.3));
-      emblema.atualizar(s, camera);
+      meteoro.atualizar(s, ORIGEM_METEORO, CENTRO.clone().setY(PLANO + 0.1));
+      uMetrito.frente.value = frenteOnda(s);
+      ponteiroEmblema.set(Math.abs(ponteiro.x) > 1 ? 0 : ponteiro.x, Math.abs(ponteiro.y) > 1 ? 0 : ponteiro.y);
+      emblema.atualizar(s, t, camera, ponteiroEmblema);
 
       const metritoAceso = suave(3, 3.4, s);
       const pulso = 0.75 + 0.25 * Math.sin(t * 1.3);
@@ -668,22 +716,26 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       if (matTerreno) matTerreno.emissiveIntensity = (0.9 + 0.3 * Math.sin(t * 1.3)) * metritoAceso;
 
       const subida = suave(3, 4, s);
+      const emOrbita = suave(6.5, 7.0, s) * (1 - suave(7.5, 7.95, s)) + suave(11.4, 11.95, s);
+      if (!reduz) giroPedras += velocidadePedras * dt;
+      velocidadePedras += (0.12 - velocidadePedras) * (1 - Math.exp(-dt * 0.8)); // volta ao giro lento
+      const ce = emblema.centro;
       fragmentos.forEach((f) => {
         f.visible = subida > 0.01;
-        f.position.set(CENTRO.x + f.userData.base.x, chaoCentro + f.userData.base.y * subida, CENTRO.z + f.userData.base.z);
+        const { ang, raio, altura } = f.userData.orbita;
+        const a = ang + giroPedras;
+        colunaPos.set(CENTRO.x + f.userData.base.x, chaoCentro + f.userData.base.y * subida, CENTRO.z + f.userData.base.z);
+        orbitaPos.set(ce.x + Math.cos(a) * raio, ce.y + altura + Math.sin(a * 2) * 0.3, ce.z + Math.sin(a) * raio * 0.55);
+        f.position.lerpVectors(colunaPos, orbitaPos, emOrbita);
         if (!reduz) {
           f.position.y += Math.sin(t * 0.3 + f.userData.fase) * 0.08;
-          f.rotation.x += f.userData.gira;
+          f.rotation.x += f.userData.gira + velocidadePedras * 0.01;
           f.rotation.y += f.userData.gira * 0.7;
         }
       });
-      if (arvores) arvores.grupo.visible = s > 2.2;
+      if (arvores) arvores.grupo.visible = s > 4.1;
       tochas?.atualizar(s, t);
 
-      // som: o Big Bang e o impacto, só quando a história passa por eles indo para a frente
-      if (sAnterior < 1 && s >= 1) somRef.current?.estrondo(0.6);
-      if (sAnterior < 3 && s >= 3) somRef.current?.estrondo(1);
-      sAnterior = s;
 
       // escolas aparecem com A Ordem
       const escolasVisiveis = suave(5.6, 6.2, s);
@@ -739,9 +791,8 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       const alvoS = progresso * FINAL;
       s += (alvoS - s) * (reduz ? 1 : 1 - Math.exp(-dt * 3.5));
       if (Math.abs(alvoS - s) < 0.0005) s = alvoS;
-      giro += (giroAlvo - giro) * 0.08;
       posicionarCamera(dt);
-      atualizarHistoria(t);
+      atualizarHistoria(t, dt);
 
       matPoeira.uniforms.tempo.value = t;
       const livre = s > FINAL - 0.4;
@@ -749,7 +800,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       const hit = livre ? ray.intersectObjects(alvosClique)[0]?.object || null : null;
       if (hit !== foco) {
         foco = hit;
-        palco.style.cursor = hit ? "pointer" : livre ? "grab" : "default";
+        palco.style.cursor = hit ? "pointer" : emblemaNoCeu() ? "grab" : "default";
       }
       alvosClique.forEach((a) => {
         const { luz, feixe, onda, fase } = a.userData;
@@ -786,13 +837,16 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
     const aoMover = (ev) => {
       const r = palco.getBoundingClientRect();
       ponteiro.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
-      if (arrastando && !escolaAberta && s > FINAL - 0.4) {
-        giroAlvo = arrastando.giro - ((ev.clientX - arrastando.x) / r.width) * 3;
+      // arrastar gira as pedras em volta do emblema (quando ele está no céu)
+      if (arrastando && !escolaAberta) {
+        const dx = ev.clientX - arrastando.ultimoX;
+        arrastando.ultimoX = ev.clientX;
         if (Math.abs(ev.clientX - arrastando.x) > 4) arrastando.moveu = true;
+        if (emblemaNoCeu()) velocidadePedras = Math.max(-6, Math.min(6, velocidadePedras + (dx / r.width) * 40));
       }
     };
     const aoApertar = (ev) => {
-      arrastando = { x: ev.clientX, giro: giroAlvo, moveu: false };
+      arrastando = { x: ev.clientX, ultimoX: ev.clientX, moveu: false };
     };
     const aoSoltar = (ev) => {
       if (arrastando && !arrastando.moveu && s > FINAL - 0.4) {
@@ -806,6 +860,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       arrastando = null;
     };
     const aoSair = () => ponteiro.set(9, 9);
+    const emblemaNoCeu = () => (s > 6.6 && s < 7.9) || s > 11.5;
     const aoTecla = (ev) => {
       if (ev.key === "Escape" && escolaAberta) fecharEscola();
     };
@@ -835,7 +890,6 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
     enquadrar();
     lerScroll();
     s = progresso * FINAL;
-    sAnterior = s;
     tocar();
 
     return () => {
@@ -926,7 +980,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
           <button type="button" style={st.painelBotao} onClick={() => onEntrar?.()}>
             ENTRAR NA ORDEM
           </button>
-          <p style={st.finalDica}>Arraste para girar · clique nas luzes para rever as escolas</p>
+          <p style={st.finalDica}>Arraste para girar as pedras · clique nas luzes para rever as escolas</p>
         </div>
 
         <p ref={dicaRef} style={{ ...st.rolar, visibility: entrou ? "visible" : "hidden" }}>

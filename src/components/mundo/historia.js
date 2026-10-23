@@ -9,6 +9,9 @@ export const suave = (a, b, x) => {
   return t * t * (3 - 2 * t);
 };
 
+/** Raio (km) da frente da onda de choque do impacto: sai do centro em s = 3 e passa da borda do terreno. */
+export const frenteOnda = (s) => suave(3, 4.2, s) * 22;
+
 /** Big Bang: um clarão num ponto e milhares de partículas se espalhando em cores quentes e frias. */
 export function criarBigBang({ centro, texturaBrilho }) {
   const n = 7000;
@@ -84,7 +87,7 @@ export function criarBigBang({ centro, texturaBrilho }) {
   };
 }
 
-/** Meteoro: cai do alto até o centro do impacto, com rastro, clarão e onda de choque. */
+/** Meteoro: cai do alto até o centro do impacto, com rastro e clarão. A onda de choque fica no terreno. */
 export function criarMeteoro({ texturaBrilho, cor }) {
   const grupo = new THREE.Group();
   const matNucleo = new THREE.SpriteMaterial({ map: texturaBrilho, color: "#eaf6ff", transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
@@ -112,13 +115,9 @@ export function criarMeteoro({ texturaBrilho, cor }) {
 
   const matClarao = new THREE.SpriteMaterial({ map: texturaBrilho, color: "#dff3ff", transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
   const clarao = new THREE.Sprite(matClarao);
-  const geoOnda = new THREE.RingGeometry(0.92, 1, 96);
-  const matOnda = new THREE.MeshBasicMaterial({ color: cor, transparent: true, opacity: 0, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false });
-  const onda = new THREE.Mesh(geoOnda, matOnda);
-  onda.rotation.x = -Math.PI / 2;
 
   const raiz = new THREE.Group();
-  raiz.add(grupo, rastro, clarao, onda);
+  raiz.add(grupo, rastro, clarao);
   const p = new THREE.Vector3();
   const atras = new THREE.Vector3();
 
@@ -143,17 +142,12 @@ export function criarMeteoro({ texturaBrilho, cor }) {
 
       const d = s - 3;
       clarao.position.copy(destino).y += 0.5;
-      const pico = d >= -0.02 ? 1 - suave(0, 0.6, d) : 0;
-      matClarao.opacity = pico;
-      clarao.scale.setScalar(2 + (1 - pico) * 18);
-      onda.position.copy(destino).y += 0.08;
-      const o = suave(0, 0.9, d);
-      onda.visible = d > 0 && d < 1;
-      onda.scale.setScalar(0.3 + o * 13);
-      matOnda.opacity = (1 - o) * 0.9;
+      const pico = d >= -0.02 ? 1 - suave(0, 0.45, d) : 0;
+      matClarao.opacity = pico * 0.85;
+      clarao.scale.setScalar(2 + (1 - pico) * 9);
     },
     descartar() {
-      [matNucleo, matHalo, geoRastro, matRastro, matClarao, geoOnda, matOnda].forEach((x) => x.dispose());
+      [matNucleo, matHalo, geoRastro, matRastro, matClarao].forEach((x) => x.dispose());
     },
   };
 }
@@ -190,26 +184,63 @@ export function criarTochas({ texturaBrilho, relevo, centro, quantidade = 70 }) 
   };
 }
 
-/** O emblema de A Ordem no céu: aparece quando a história chega na Ordem e de novo no fim. */
-export function criarEmblemaCeu({ textura, posicao, altura = 9 }) {
-  const img = textura.image;
-  const proporcao = img && img.width ? img.width / img.height : 0.77;
-  const geo = new THREE.PlaneGeometry(altura * proporcao, altura);
-  const mat = new THREE.MeshBasicMaterial({ map: textura, transparent: true, opacity: 0, depthWrite: false, fog: false });
+/**
+ * O emblema de A Ordem no céu: aparece quando a história chega na Ordem e de novo no fim.
+ * Flutua devagar, a rachadura pulsa em azul (o Metrito) e o disco se inclina de leve
+ * seguindo o ponteiro.
+ */
+export function criarEmblemaCeu({ textura, posicao, altura = 9, cor = "#5cc3ff" }) {
+  const geo = new THREE.PlaneGeometry(1, 1);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { mapa: { value: textura }, opacidade: { value: 0 }, tempo: { value: 0 }, cor: { value: new THREE.Color(cor) } },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `
+      uniform sampler2D mapa; uniform float opacidade; uniform float tempo; uniform vec3 cor; varying vec2 vUv;
+      void main(){
+        vec4 t = texture2D(mapa, vUv);
+        float lum = dot(t.rgb, vec3(0.3, 0.59, 0.11));
+        // a rachadura corre na vertical, um pouco à direita do centro da arte
+        float fenda = exp(-pow((vUv.x - 0.53) / 0.045, 2.0)) * smoothstep(0.18, 0.3, vUv.y);
+        float onda = 0.5 + 0.5 * sin(tempo * 2.2 - vUv.y * 9.0);
+        vec3 c = t.rgb + cor * fenda * lum * (0.25 + 0.6 * onda);
+        gl_FragColor = vec4(c, t.a * opacidade);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+    transparent: true,
+    depthWrite: false,
+    fog: false,
+  });
   const malha = new THREE.Mesh(geo, mat);
   malha.position.copy(posicao);
   malha.renderOrder = 5;
+  const base = posicao.clone();
+  const inclina = new THREE.Euler();
+  const q = new THREE.Quaternion();
+  let largura = altura * 0.77;
+  malha.scale.set(largura, altura, 1);
   return {
     malha,
+    centro: base,
     ajustarProporcao() {
       const i = textura.image;
-      if (i && i.width) malha.scale.x = i.width / i.height / proporcao;
+      if (i && i.width) {
+        largura = (altura * i.width) / i.height;
+        malha.scale.set(largura, altura, 1);
+      }
     },
-    atualizar(s, camera) {
+    /** ponteiro: posição do mouse de -1 a 1 (para a inclinação) */
+    atualizar(s, t, camera, ponteiro) {
       const o = suave(6.55, 7.05, s) * (1 - suave(7.55, 7.95, s)) + suave(11.45, 11.95, s);
-      mat.opacity = Math.min(1, o);
+      mat.uniforms.opacidade.value = Math.min(1, o);
+      mat.uniforms.tempo.value = t;
       malha.visible = o > 0.01;
-      malha.quaternion.copy(camera.quaternion);
+      malha.position.copy(base).y += Math.sin(t * 0.6) * 0.18;
+      const px = Math.max(-1, Math.min(1, ponteiro.x));
+      const py = Math.max(-1, Math.min(1, ponteiro.y));
+      inclina.set(-py * 0.12, px * 0.18, 0);
+      q.setFromEuler(inclina);
+      malha.quaternion.copy(camera.quaternion).multiply(q);
     },
     descartar() {
       geo.dispose();

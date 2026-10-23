@@ -42,6 +42,11 @@ const fragment = `
     vec3 viva = mix(cor, vec3(1.0), 0.35);
     vec3 c = interior * dentro + mix(viva, vec3(1.0), clamp(n * 0.6 + fios * 0.4, 0.0, 1.0)) * energia * 2.2;
     float a = clamp(dentro * 0.96 + energia, 0.0, 1.0);
+
+    // granulado de filme, como no Overworld: ruído por pixel que muda a cada quadro
+    float grao = hash(floor(gl_FragCoord.xy * 0.7) + floor(tempo * 24.0) * vec2(17.0, 31.0)) - 0.5;
+    c += grao * (0.16 * dentro + 0.22 * energia);
+    c *= 1.0 - 0.1 * dentro * smoothstep(0.0, R, r); // vinheta suave dentro do disco
     if (a < 0.01) discard;
     gl_FragColor = vec4(c, a);
   }`;
