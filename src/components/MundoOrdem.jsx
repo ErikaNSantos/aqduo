@@ -207,7 +207,9 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       const menu = document.querySelector("nav")?.offsetHeight || 0;
       if (!fixoRef.current) return;
       fixoRef.current.style.top = `${menu}px`;
-      fixoRef.current.style.height = `calc(100vh - ${menu}px)`;
+      // svh: a altura da tela sem as barras do navegador do celular
+      const vh = CSS.supports?.("height", "100svh") ? "100svh" : "100vh";
+      fixoRef.current.style.height = `calc(${vh} - ${menu}px)`;
     };
     ajustar();
     window.addEventListener("resize", ajustar);
@@ -239,7 +241,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
     scene.background = new THREE.Color("#000000");
     const neblina = new THREE.Fog(NOITE, 14, 34);
     scene.fog = neblina;
-    const camera = new THREE.PerspectiveCamera(estreito ? 52 : 42, 1, 0.1, 400);
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 400);
     const lixo = [];
     const g = (o) => (lixo.push(o), o);
     const brilho = g(texturaBrilho());
@@ -265,7 +267,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
     scene.add(meteoro.grupo);
     const texturaEmblema = g(new THREE.TextureLoader().load(urlEmblema, () => emblema.ajustarProporcao()));
     texturaEmblema.colorSpace = THREE.SRGBColorSpace;
-    const emblema = criarEmblemaCeu({ textura: texturaEmblema, posicao: CENTRO.clone().add(new THREE.Vector3(0, 7.6, 0)), altura: estreito ? 6.5 : 8 });
+    const emblema = criarEmblemaCeu({ textura: texturaEmblema, posicao: CENTRO.clone().add(new THREE.Vector3(0, 7.6, 0)), altura: estreito || window.innerHeight < 500 ? 6.5 : 8 });
     scene.add(emblema.malha);
 
     // Fragmentos arrancados pela queda, subindo em coluna sobre o centro do impacto
@@ -567,7 +569,9 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
     function poseEscola(alvo) {
       const chao = alvo.userData.chao;
       direcao.set(chao.x - CENTRO.x, 0, chao.z - CENTRO.z).normalize();
-      return { pos: chao.clone().addScaledVector(direcao, 7.5).setY(chao.y + 2.4), alvo: chao.clone().setY(chao.y + 2.3) };
+      // em tela em pé o olhar desce um pouco, para o portal subir e o painel da escola caber embaixo
+      const desce = camera.aspect < 0.8 ? 1.4 : 0;
+      return { pos: chao.clone().addScaledVector(direcao, 7.5).setY(chao.y + 2.4), alvo: chao.clone().setY(chao.y + 2.3 - desce) };
     }
     function pose(c) {
       if (POSES_FIXAS[c]) return POSES_FIXAS[c];
@@ -763,6 +767,8 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       renderer.domElement.style.width = w + "px";
       renderer.domElement.style.height = h + "px";
       camera.aspect = w / h;
+      // tela em pé abre o ângulo para caber a cena; tela deitada e baixa também, para caber o emblema
+      camera.fov = w < h ? 42 + (1 - w / h) * 24 : h < 500 ? 48 : 42;
       camera.updateProjectionMatrix();
       const escala = h * renderer.getPixelRatio() * 0.5;
       matPoeira.uniforms.escala.value = escala / 400;
@@ -892,17 +898,17 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
 
         {/* Capítulos 0 a 7: a história */}
         {historia.map((texto, i) => (
-          <p key={i} data-capitulo={i} style={{ ...st.capitulo, ...(i === 1 || i === 3 ? st.capituloCentro : null) }}>
+          <p key={i} data-capitulo={i} className="mo-capitulo" style={{ ...st.capitulo, ...(i === 1 || i === 3 ? st.capituloCentro : null) }}>
             {texto}
           </p>
         ))}
 
         {/* Capítulos 8 a 11: as escolas */}
         {escolas.slice(0, FINAL - CAP_ESCOLAS).map((e, i) => (
-          <div key={e.id} data-capitulo={CAP_ESCOLAS + i} style={st.escola}>
+          <div key={e.id} data-capitulo={CAP_ESCOLAS + i} className="mo-escola" style={st.escola}>
             <p style={{ ...st.painelSub, color: e.cor || OURO }}>{e.subtitulo}</p>
             <h2 style={st.painelNome}>{e.nome}</h2>
-            <p style={st.escolaResumo}>{e.resumo}</p>
+            <p className="mo-escola-resumo" style={st.escolaResumo}>{e.resumo}</p>
             <button type="button" style={st.painelBotao} onClick={() => onEscola?.(e.id)}>
               CONHECER A ESCOLA
             </button>
@@ -910,14 +916,16 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
         ))}
 
         {/* Capítulo 12: a entrada */}
-        <div data-capitulo={FINAL} style={st.final}>
+        <div data-capitulo={FINAL} className="mo-final" style={st.final}>
           <button type="button" style={st.painelBotao} onClick={() => onEntrar?.()}>
             ENTRAR NA ORDEM
           </button>
-          <p style={st.finalDica}>Arraste para girar as pedras · clique nas luzes para rever as escolas</p>
+          <p className="mo-final-dica" style={st.finalDica}>
+            Arraste para girar as pedras · toque nas luzes para rever as escolas
+          </p>
         </div>
 
-        <p ref={dicaRef} style={{ ...st.rolar, visibility: entrou ? "visible" : "hidden" }}>
+        <p ref={dicaRef} className="mo-rolar" style={{ ...st.rolar, visibility: entrou ? "visible" : "hidden" }}>
           ROLE PARA DESCOBRIR
           <br />↓
         </p>
@@ -939,6 +947,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
         <button
           type="button"
           onClick={alternarSom}
+          className="mo-som"
           style={{ ...st.som, opacity: entrou ? 1 : 0 }}
           aria-label={somLigado ? "Desligar o som" : "Ligar o som"}
         >
