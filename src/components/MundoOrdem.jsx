@@ -9,6 +9,7 @@ import urlEmblema from "../assets/emblema-titulo.png";
 import { criarCeu } from "./mundo/ceu";
 import { criarArvores } from "./mundo/arvores";
 import { criarPortal } from "./mundo/portal";
+import { criarTrilha } from "./mundo/trilha";
 import { criarBigBang, criarMeteoro, criarTochas, criarEmblemaCeu, frenteOnda, suave } from "./mundo/historia";
 import urlTerra from "../assets/classes/terra.png";
 import urlFogo from "../assets/classes/fogo.png";
@@ -142,80 +143,6 @@ const matCintilante = (tamanho) =>
     blending: THREE.AdditiveBlending,
     depthWrite: false,
   });
-
-// Som ambiente gerado no navegador: drone grave, vento filtrado e um sino distante
-function criarSom() {
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) return null;
-  const ctx = new Ctx();
-  const mestre = ctx.createGain();
-  mestre.gain.value = 0;
-  mestre.connect(ctx.destination);
-
-  const filtro = ctx.createBiquadFilter();
-  filtro.type = "lowpass";
-  filtro.frequency.value = 520;
-  filtro.connect(mestre);
-  [55, 82.4, 110.2].forEach((f, i) => {
-    const o = ctx.createOscillator();
-    o.type = i === 2 ? "triangle" : "sine";
-    o.frequency.value = f;
-    o.detune.value = i * 4;
-    const g = ctx.createGain();
-    g.gain.value = [0.35, 0.22, 0.08][i];
-    o.connect(g).connect(filtro);
-    o.start();
-  });
-
-  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const vento = ctx.createBufferSource();
-  vento.buffer = buf;
-  vento.loop = true;
-  const banda = ctx.createBiquadFilter();
-  banda.type = "bandpass";
-  banda.frequency.value = 380;
-  banda.Q.value = 0.7;
-  const gVento = ctx.createGain();
-  gVento.gain.value = 0.05;
-  const lfo = ctx.createOscillator();
-  lfo.frequency.value = 0.07;
-  const gLfo = ctx.createGain();
-  gLfo.gain.value = 0.035;
-  lfo.connect(gLfo).connect(gVento.gain);
-  vento.connect(banda).connect(gVento).connect(mestre);
-  vento.start();
-  lfo.start();
-
-  let sinoTimer = 0;
-  const sino = () => {
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = "sine";
-    o.frequency.value = [440, 392, 523.25, 349.23][Math.floor(Math.random() * 4)];
-    g.gain.setValueAtTime(0, ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 4);
-    o.connect(g).connect(mestre);
-    o.start();
-    o.stop(ctx.currentTime + 4.2);
-    sinoTimer = setTimeout(sino, 7000 + Math.random() * 9000);
-  };
-  sinoTimer = setTimeout(sino, 3000);
-
-  return {
-    ligar(on) {
-      if (ctx.state === "suspended") ctx.resume();
-      mestre.gain.cancelScheduledValues(ctx.currentTime);
-      mestre.gain.linearRampToValueAtTime(on ? 0.5 : 0, ctx.currentTime + 1.5);
-    },
-    fechar() {
-      clearTimeout(sinoTimer);
-      ctx.close();
-    },
-  };
-}
 
 // Capítulos da história, na ordem do scroll. `s` vai de 0 (o nada) a FINAL.
 // 0 o nada · 1 Big Bang · 2 o meteoro · 3 o impacto · 4 a energia no solo (os Scrips)
@@ -793,6 +720,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
       if (Math.abs(alvoS - s) < 0.0005) s = alvoS;
       posicionarCamera(dt);
       atualizarHistoria(t, dt);
+      somRef.current?.atualizar(s);
 
       matPoeira.uniforms.tempo.value = t;
       const livre = s > FINAL - 0.4;
@@ -932,7 +860,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
 
   function entrar(comSom) {
     if (comSom) {
-      somRef.current = somRef.current || criarSom();
+      somRef.current = somRef.current || criarTrilha();
       somRef.current?.ligar(true);
     }
     setSomLigado(comSom && !!somRef.current);
@@ -940,7 +868,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
   }
 
   function alternarSom() {
-    somRef.current = somRef.current || criarSom();
+    somRef.current = somRef.current || criarTrilha();
     if (!somRef.current) return;
     somRef.current.ligar(!somLigado);
     setSomLigado(!somLigado);
