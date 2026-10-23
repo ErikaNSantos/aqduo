@@ -110,7 +110,7 @@ export default function PainelPrincipal({ session, onSair }) {
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
-        .single();
+        .maybeSingle(); // quem não tem papel cadastrado é jogador
       if (data) setUserRole(data.role);
     }
     if (session?.user?.id) carregarRole();
@@ -1069,7 +1069,7 @@ function ViewPersonagens({
                       borderColor: "rgba(139,50,50,0.2)",
                       color: "#d07060",
                     }}
-                    onClick={() => onDescartarFicha(ficha.id)}
+                    onClick={() => onDescartarFicha(ficha)}
                     onMouseOver={(e) => {
                       e.currentTarget.style.background = "rgba(139,50,50,0.1)";
                       e.currentTarget.style.color = "#e08878";
