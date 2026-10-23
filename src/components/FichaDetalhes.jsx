@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import ArvoreHabilidades from "./ArvoreHabilidades";
 import { supabase } from "../supabaseClient";
 
 // ─────────────────────────────────────────────
@@ -163,6 +164,7 @@ export default function FichaDetalhes({ fichaId, nomeLinhagem, onVoltar }) {
   const [skills, setSkills] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [abaTexto, setAbaTexto] = useState("historia");
+  const [verArvore, setVerArvore] = useState(false);
 
   useEffect(() => {
     async function carregar() {
@@ -214,6 +216,10 @@ export default function FichaDetalhes({ fichaId, nomeLinhagem, onVoltar }) {
     );
   }
 
+  if (verArvore) {
+    return <ArvoreHabilidades fichaId={fichaId} onVoltar={() => setVerArvore(false)} />;
+  }
+
   const deriv = calcDeriv(ficha);
   const sequelas = skills.filter((sk) =>
     sk.tipo?.toLowerCase().includes("equela"),
@@ -254,6 +260,9 @@ export default function FichaDetalhes({ fichaId, nomeLinhagem, onVoltar }) {
           )}
         </div>
         <div style={s.cabecalhoDireita}>
+          <button type="button" style={s.btnArvore} onClick={() => setVerArvore(true)}>
+            ÁRVORE DE HABILIDADES ✦
+          </button>
           <div style={s.cashBox}>
             <span style={s.cashLabel}>CASH</span>
             <span style={s.cashValor}>R$ {ficha.cash_rs ?? 200}</span>
@@ -535,6 +544,17 @@ function PoolBar({ label, atual, max, cor }) {
 // ESTILOS
 // ─────────────────────────────────────────────
 const s = {
+  btnArvore: {
+    background: "rgba(6,9,12,0.6)",
+    border: "1px solid rgba(232,208,138,0.45)",
+    borderRadius: 4,
+    color: "#e8d08a",
+    padding: "10px 16px",
+    fontSize: "0.7em",
+    letterSpacing: "2px",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  },
   root: {
     maxWidth: "960px",
     margin: "0 auto",
