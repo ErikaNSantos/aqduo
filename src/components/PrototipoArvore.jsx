@@ -3,14 +3,15 @@ import { Link } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { DONS, AFINIDADE, HI_DA_LINHAGEM, PARAMETRO_MIN, PARAMETRO_MAX } from "../dados/dons";
 
-// PROTÓTIPO da árvore de um Scrip: raízes = linhagem, semente e tronco = o Dom despertado
-// (o tronco cresce com o Parâmetro), copa = as técnicas do Dom, galhos baixos = o que se treina.
+// PROTÓTIPO da árvore de um Scrip: raízes = linhagem, semente = o Dom despertado,
+// centro da copa = as técnicas do Dom, galhos dos lados = o que se treina, tronco = aptidões.
 // Nada aqui é salvo: as técnicas "aprendidas" são só uma simulação na tela.
 
-const LARGURA = 1400;
+const LARGURA = 1000;
 const ALTURA = 1000;
-const CX = 700;
-const CHAO = 700;
+const CX = 500;
+const CHAO = 690;
+const TOPO_TRONCO = 400;
 const ZOOM_MIN = 0.45;
 const ZOOM_MAX = 4;
 
@@ -21,10 +22,113 @@ const BRASA = "#ff9a5a";
 const NEUTRO = "#9aa7ae";
 const SERIFA = "'Palatino Linotype', 'Book Antiqua', Palatino, serif";
 
-// altura do tronco para cada Parâmetro
-const yParametro = (p) => CHAO - 40 - p * 20;
-// onde fica cada nível de técnica na copa: [distância do centro, altura]
-const NIVEIS = { 4: [190, 470], 7: [340, 375], 10: [300, 265], 14: [0, 165] };
+const grau = (g) => (g * Math.PI) / 180;
+const ehAptidao = (n) => /aptid/i.test(n.tipo || "");
+
+// ponto de uma curva quadrática de a até b com controle c
+function naCurva(a, c, b, t) {
+  const u = 1 - t;
+  return { x: u * u * a.x + 2 * u * t * c.x + t * t * b.x, y: u * u * a.y + 2 * u * t * c.y + t * t * b.y };
+}
+
+// Poeira de estrelas no formato da copa (sempre igual, sem sorteio a cada render)
+const FOLHAGEM = Array.from({ length: 140 }, (_, i) => {
+  const a = i * 2.39996;
+  const raio = Math.sqrt((i + 0.5) / 140);
+  return { x: CX + Math.cos(a) * raio * 400, y: 210 + Math.sin(a) * raio * 200, r: 0.6 + (i % 5) * 0.25, o: 0.15 + (i % 7) * 0.05, dom: i % 3 === 0 };
+});
+
+/**
+ * Desenho da árvore (o mesmo formato da árvore de habilidades):
+ * as técnicas do Dom sobem pelos dois galhos do centro e se juntam na técnica final, no alto;
+ * as habilidades treinadas ficam nos galhos dos lados e as aptidões no tronco.
+ */
+function montarArvore(dom, treinadas, requisitos) {
+  const pos = {};
+  const tracos = [];
+  const raminho = (inicio, ctrl, fim, j) =>
+    [0.35, 0.78].forEach((tq, k) => {
+      const base = naCurva(inicio, ctrl, fim, tq);
+      const dir = Math.atan2(fim.y - inicio.y, fim.x - inicio.x) + grau((k ? 32 : -32) * (j % 2 ? 1 : -1));
+      const ponta = { x: base.x + Math.cos(dir) * 55, y: base.y + Math.sin(dir) * 55 };
+      tracos.push({ tipo: "raminho", d: `M${base.x} ${base.y} Q${(base.x + ponta.x) / 2} ${(base.y + ponta.y) / 2 - 10} ${ponta.x} ${ponta.y}` });
+    });
+
+  // Dom: dois caminhos de técnicas, um em cada galho do centro, e a técnica final no topo
+  const porNivel = {};
+  dom.tecnicas.forEach((tc) => (porNivel[tc.parametro] ||= []).push(tc));
+  const niveis = Object.keys(porNivel).map(Number).sort((a, b) => a - b);
+  const ultimo = porNivel[niveis[niveis.length - 1]] || [];
+  const final = ultimo.length === 1 ? ultimo[0] : null;
+  const caminhos = [[], []];
+  niveis.forEach((nv) => porNivel[nv].forEach((tc, i) => tc !== final && caminhos[i % 2].push(tc)));
+  const pontas = [];
+  [-1, 1].forEach((lado, k) => {
+    const inicio = { x: CX, y: TOPO_TRONCO };
+    const fim = { x: CX + lado * 105, y: 165 };
+    const ctrl = { x: CX + lado * 130, y: 330 };
+    tracos.push({ tipo: "dom", d: `M${inicio.x} ${inicio.y} Q${ctrl.x} ${ctrl.y} ${fim.x} ${fim.y}` });
+    raminho(inicio, ctrl, fim, k);
+    caminhos[k].forEach((tc, i) => (pos[tc.id] = naCurva(inicio, ctrl, fim, 0.38 + (0.62 * (i + 1)) / caminhos[k].length)));
+    pontas.push(fim);
+  });
+  if (final) {
+    pos[final.id] = { x: CX, y: 70 };
+    pontas.forEach((p) => tracos.push({ tipo: "dom", d: `M${p.x} ${p.y} Q${p.x} ${80} ${CX} ${70}` }));
+  }
+
+  // Tronco: as aptidões sobem por ele, alternando os lados
+  const aptidoes = treinadas.filter(ehAptidao);
+  aptidoes.forEach((n, i) => {
+    const y = CHAO - (CHAO - TOPO_TRONCO) * ((i + 1) / (aptidoes.length + 1)) * 0.95;
+    const lado = i % 2 ? 1 : -1;
+    pos[n.id] = { x: CX + lado * 38, y };
+    tracos.push({ tipo: "galho", d: `M${CX} ${y + 10} Q${CX + lado * 22} ${y + 6} ${CX + lado * 38} ${y}` });
+  });
+
+  // Galhos dos lados: as habilidades treinadas, dois nós por galho
+  const filhos = {};
+  const temPai = new Set();
+  requisitos.forEach((rq) => {
+    if (!treinadas.some((n) => n.id === rq.node_id) || !treinadas.some((n) => n.id === rq.requisito_node_id)) return;
+    (filhos[rq.requisito_node_id] ||= []).push(rq.node_id);
+    temPai.add(rq.node_id);
+  });
+  const copa = treinadas.filter((n) => !ehAptidao(n) && !temPai.has(n.id));
+  const nGalhos = Math.max(2, Math.ceil(copa.length / 2));
+  const porLado = Math.ceil(nGalhos / 2);
+  for (let j = 0; j < nGalhos; j++) {
+    const esquerda = j < porLado;
+    const k = esquerda ? j : j - porLado;
+    const total = esquerda ? porLado : nGalhos - porLado;
+    const f = total === 1 ? 0.5 : k / (total - 1);
+    const ang = esquerda ? 186 + 40 * f : 314 + 40 * f;
+    const desvio = Math.abs(ang - 270) / 82;
+    const inicio = { x: CX, y: TOPO_TRONCO + desvio * 90 };
+    const comp = 250 + desvio * 120 + (j % 2) * 30;
+    const fim = { x: inicio.x + Math.cos(grau(ang)) * comp, y: inicio.y + Math.sin(grau(ang)) * comp * (1 - desvio * 0.35) - desvio * 120 };
+    const ctrl = { x: inicio.x + Math.cos(grau(ang)) * comp * 0.5, y: inicio.y + Math.sin(grau(ang)) * comp * 0.2 - 30 };
+    tracos.push({ tipo: "galho", d: `M${inicio.x} ${inicio.y} Q${ctrl.x} ${ctrl.y} ${fim.x} ${fim.y}` });
+    raminho(inicio, ctrl, fim, j);
+    [copa[j * 2], copa[j * 2 + 1]].forEach((n, q) => {
+      if (n) pos[n.id] = { ...naCurva(inicio, ctrl, fim, q === 0 ? 0.55 : 1), ang: ang - desvio * 25 * Math.sign(ang - 270) };
+    });
+  }
+  // requisitos entre treinadas: a habilidade nasce num raminho depois da que ela exige
+  const crescer = (id, ang, prof) =>
+    (filhos[id] || []).forEach((filho, i, todos) => {
+      if (pos[filho] || prof > 6) return;
+      const a = ang + (i - (todos.length - 1) / 2) * 28;
+      const pai = pos[id];
+      const p = { x: pai.x + Math.cos(grau(a)) * 85, y: pai.y + Math.sin(grau(a)) * 85, ang: a };
+      pos[filho] = p;
+      tracos.push({ tipo: "galho", d: `M${pai.x} ${pai.y} Q${(pai.x + p.x) / 2} ${(pai.y + p.y) / 2 - 18} ${p.x} ${p.y}` });
+      crescer(filho, a, prof + 1);
+    });
+  Object.keys(filhos).forEach((id) => pos[id] && crescer(id, pos[id].ang ?? 270, 0));
+
+  return { pos, tracos };
+}
 
 const ehInata = (n) => n.id?.startsWith("hi_");
 const nomeCurto = (n) => (n.nome || "").replace(/^H\.?I\.?\s*:\s*/i, "");
@@ -79,7 +183,7 @@ export default function PrototipoArvore() {
   const [parametro, setParametro] = useState(5);
   const [aprendidas, setAprendidas] = useState(new Set());
   const [escolhida, setEscolhida] = useState(null);
-  const [vista, setVista] = useState({ x: 0, y: 90, zoom: 1 });
+  const [vista, setVista] = useState({ x: 0, y: 30, zoom: 1 });
   const [ajustesAbertos, setAjustesAbertos] = useState(() => typeof window === "undefined" || window.innerWidth > 700);
   const svgRef = useRef(null);
   const toques = useRef(new Map());
@@ -121,42 +225,12 @@ export default function PrototipoArvore() {
     return exige.every((e) => aprendidas.has(e)) ? "disponivel" : "bloqueada";
   };
 
-  // posições das técnicas na copa
-  const posTecnica = useMemo(() => {
-    const pos = {};
-    const porNivel = {};
-    dom.tecnicas.forEach((t) => (porNivel[t.parametro] ||= []).push(t));
-    Object.entries(porNivel).forEach(([nivel, lista]) => {
-      const [dx, y] = NIVEIS[nivel] || [250, yParametro(nivel) - 60];
-      lista.forEach((t, i) => {
-        const lado = lista.length === 1 ? 0 : i === 0 ? -1 : 1;
-        pos[t.id] = { x: CX + lado * dx, y };
-      });
-    });
-    return pos;
-  }, [dom]);
-
-  // habilidades treinadas nos galhos baixos, metade de cada lado
-  const treinadas = skills.filter((n) => !ehInata(n));
-  const posTreinada = useMemo(() => {
-    const pos = {};
-    const metade = Math.ceil(treinadas.length / 2);
-    treinadas.forEach((n, i) => {
-      const lado = i < metade ? -1 : 1;
-      const k = i < metade ? i : i - metade;
-      const total = i < metade ? metade : treinadas.length - metade;
-      const t = 0.18 + (0.82 * (k + 0.5)) / total;
-      const x = CX + lado * (90 + t * 560);
-      const yBase = CHAO - 45 - Math.sin(t * Math.PI) * 35;
-      pos[n.id] = { x, y: yBase + (k % 2 ? 34 : -34), acima: k % 2 === 0, base: { x, y: yBase } };
-    });
-    return pos;
-  }, [treinadas]);
+  const treinadas = useMemo(() => skills.filter((n) => !ehInata(n)), [skills]);
+  const { pos, tracos } = useMemo(() => montarArvore(dom, treinadas, requisitos), [dom, treinadas, requisitos]);
 
   const hiId = HI_DA_LINHAGEM[linhagem];
   const hi = skills.find((n) => n.id === hiId);
   const descricaoLinhagem = linhagens.find((l) => l.nome_tribo === linhagem)?.descricao;
-  const topoTronco = yParametro(parametroEfetivo);
 
   // pan e zoom
   useEffect(() => {
@@ -168,13 +242,13 @@ export default function PrototipoArvore() {
       zoomEm(e.deltaY > 0 ? 1 / 1.1 : 1.1, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
     };
     el.addEventListener("wheel", aoRolar, { passive: false });
-    if (el.getBoundingClientRect().width / el.getBoundingClientRect().height < 0.8) setVista({ x: 262, y: 110, zoom: 1.6 });
+    if (el.getBoundingClientRect().width / el.getBoundingClientRect().height < 0.8) setVista({ x: 190, y: 40, zoom: 1.6 });
     return () => el.removeEventListener("wheel", aoRolar);
   }, []);
   function zoomEm(fator, fx = 0.5, fy = 0.5) {
     setVista((v) => {
       const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, v.zoom * fator));
-      const [w0, h0, w1, h1] = [LARGURA / v.zoom, (ALTURA - 140) / v.zoom, LARGURA / zoom, (ALTURA - 140) / zoom];
+      const [w0, h0, w1, h1] = [LARGURA / v.zoom, (ALTURA - 60) / v.zoom, LARGURA / zoom, (ALTURA - 60) / zoom];
       return { zoom, x: v.x + (w0 - w1) * fx, y: v.y + (h0 - h1) * fy };
     });
   }
@@ -198,7 +272,7 @@ export default function PrototipoArvore() {
       pinca.current = d;
       return;
     }
-    const escala = Math.max(LARGURA / vista.zoom / r.width, (ALTURA - 140) / vista.zoom / r.height);
+    const escala = Math.max(LARGURA / vista.zoom / r.width, (ALTURA - 60) / vista.zoom / r.height);
     setVista((v) => ({ ...v, x: v.x - (e.clientX - antes.x) * escala, y: v.y - (e.clientY - antes.y) * escala }));
   }
   function aoSoltar(e) {
@@ -215,7 +289,7 @@ export default function PrototipoArvore() {
     });
   }
 
-  const vb = `${vista.x} ${vista.y} ${LARGURA / vista.zoom} ${(ALTURA - 140) / vista.zoom}`;
+  const vb = `${vista.x} ${vista.y} ${LARGURA / vista.zoom} ${(ALTURA - 60) / vista.zoom}`;
   const nomesLinhagens = linhagens.length ? linhagens.map((l) => l.nome_tribo) : Object.keys(HI_DA_LINHAGEM);
 
   // dados do painel de detalhe
@@ -303,8 +377,9 @@ export default function PrototipoArvore() {
         )}
 
         <div className="proto-legenda" style={st.legenda}>
-          <span style={st.legendaItem}><i style={{ ...st.ponto, background: dom.cor }} /> Copa · técnicas do Dom</span>
-          <span style={st.legendaItem}><i style={{ ...st.ponto, background: CREME }} /> Galhos baixos · treinadas</span>
+          <span style={st.legendaItem}><i style={{ ...st.ponto, background: dom.cor }} /> Centro da copa · técnicas do Dom</span>
+          <span style={st.legendaItem}><i style={{ ...st.ponto, background: CREME }} /> Galhos dos lados · treinadas</span>
+          <span style={st.legendaItem}><i style={{ ...st.ponto, background: OURO }} /> Tronco · aptidões</span>
           <span style={st.legendaItem}><svg width="12" height="12" viewBox="-6 -6 12 12"><path d={estrela4(0, 0, 2.6)} fill={BRASA} /></svg> Estrela de 4 pontas · ativa</span>
           <span style={st.legendaItem}><i style={{ ...st.ponto, background: AZUL }} /> Raiz · linhagem</span>
           <span style={st.legendaItem}><i style={{ ...st.ponto, border: `1px dashed ${NEUTRO}`, background: "transparent" }} /> Tracejada · ainda bloqueada</span>
@@ -333,15 +408,20 @@ export default function PrototipoArvore() {
           </defs>
 
           {/* solo */}
-          <rect x={-3000} y={CHAO} width={7400} height={3000} fill="url(#protoSolo)" />
-          <line x1={-3000} y1={CHAO} x2={4400} y2={CHAO} stroke="rgba(232,208,138,0.25)" />
+          <rect x={-3000} y={CHAO} width={7000} height={3000} fill="url(#protoSolo)" />
+          <line x1={-3000} y1={CHAO} x2={4000} y2={CHAO} stroke="rgba(232,208,138,0.25)" />
+          <ellipse cx={CX} cy={CHAO} rx={260} ry={14} fill={dom.cor} opacity="0.12" filter="url(#protoBorrao)" />
 
           {/* raízes: a linhagem */}
-          {[-0.9, -0.55, -0.25, 0, 0.25, 0.55, 0.9].map((f, i) => {
-            const fim = { x: CX + f * 330, y: CHAO + 150 - Math.abs(f) * 40 + (i % 2) * 20 };
-            return <path key={i} d={`M${CX} ${CHAO} Q${CX + f * 120} ${CHAO + 40} ${fim.x} ${fim.y}`} fill="none" stroke={AZUL} strokeOpacity={f === 0 ? 0.7 : 0.3} strokeWidth="1.1" />;
+          {[160, 132, 104, 76, 48, 20].map((ang, i) => {
+            const inicio = { x: CX + Math.cos(grau(ang)) * 12, y: CHAO };
+            const comp = 250 + (Math.abs(ang - 90) / 70) * 90;
+            const fim = { x: inicio.x + Math.cos(grau(ang)) * comp, y: Math.min(ALTURA - 40, inicio.y + Math.sin(grau(ang)) * comp * 0.75) };
+            const ctrl = { x: inicio.x + Math.cos(grau(ang)) * comp * 0.6, y: inicio.y + 30 };
+            return <path key={i} d={`M${inicio.x} ${inicio.y} Q${ctrl.x} ${ctrl.y} ${fim.x} ${fim.y}`} fill="none" stroke={AZUL} strokeOpacity="0.4" strokeWidth="1.1" />;
           })}
-          <text x={CX} y={CHAO + 225} textAnchor="middle" fill={AZUL} fillOpacity="0.8" fontSize="11" letterSpacing="4" fontFamily={SERIFA}>
+          <path d={`M${CX} ${CHAO} Q${CX + 6} ${CHAO + 80} ${CX} ${CHAO + 150}`} fill="none" stroke={AZUL} strokeOpacity="0.75" strokeWidth="1.3" />
+          <text x={CX} y={CHAO + 230} textAnchor="middle" fill={AZUL} fillOpacity="0.8" fontSize="11" letterSpacing="4" fontFamily={SERIFA}>
             LINHAGEM · {linhagem.toUpperCase()}
           </text>
           {hiId && (
@@ -357,99 +437,78 @@ export default function PrototipoArvore() {
             />
           )}
 
-          {/* galhos baixos: o que se treina */}
-          {[-1, 1].map((lado) => (
-            <path key={lado} d={`M${CX} ${CHAO - 25} Q${CX + lado * 330} ${CHAO - 100} ${CX + lado * 660} ${CHAO - 42}`} fill="none" stroke={NEUTRO} strokeOpacity="0.35" strokeWidth="1.2" />
+          {/* folhagem */}
+          {FOLHAGEM.map((f, i) => (
+            <circle key={`f${i}`} cx={f.x} cy={f.y} r={f.r} fill={f.dom ? dom.cor : OURO} opacity={f.o} />
           ))}
-          {treinadas.map((n) => {
-            const p = posTreinada[n.id];
-            return <line key={`g${n.id}`} x1={p.base.x} y1={p.base.y} x2={p.x} y2={p.y} stroke={NEUTRO} strokeOpacity="0.25" />;
+
+          {/* tronco: três fios de luz na cor do Dom */}
+          {[-12, 0, 12].map((dx, i) => (
+            <path
+              key={i}
+              d={`M${CX + dx} ${CHAO} C${CX + dx * 0.8 - 6} ${CHAO - 110} ${CX + dx * 0.4 + 6} ${TOPO_TRONCO + 120} ${CX + dx * 0.2} ${TOPO_TRONCO}`}
+              fill="none"
+              stroke={dom.cor}
+              strokeOpacity={i === 1 ? 0.85 : 0.35}
+              strokeWidth={i === 1 ? 1.6 : 1}
+            />
+          ))}
+
+          {/* galhos */}
+          {tracos.map((tr, i) => {
+            const cor = tr.tipo === "dom" ? dom.cor : OURO;
+            return (
+              <g key={i}>
+                {tr.tipo !== "raminho" && <path d={tr.d} fill="none" stroke={cor} strokeOpacity="0.16" strokeWidth="5" filter="url(#protoBorrao)" />}
+                <path d={tr.d} fill="none" stroke={cor} strokeOpacity={tr.tipo === "raminho" ? 0.4 : 0.7} strokeWidth={tr.tipo === "dom" ? 1.4 : 1.1} strokeLinecap="round" />
+              </g>
+            );
           })}
-          {requisitos.map((r) => {
-            const a = posTreinada[r.requisito_node_id];
-            const b = posTreinada[r.node_id];
-            return a && b ? <line key={`r${r.id}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={BRASA} strokeOpacity="0.4" strokeDasharray="3 4" /> : null;
-          })}
+
+          {/* habilidades treinadas */}
           {treinadas.map((n) => {
-            const p = posTreinada[n.id];
+            const p = pos[n.id];
+            if (!p) return null;
             const ativa = /ativa/i.test(n.tipo || "");
+            const apt = ehAptidao(n);
             return (
               <Estrela
                 key={n.id}
                 x={p.x}
                 y={p.y}
-                r={ativa ? 4.5 : 3.8}
-                cor={ativa ? BRASA : CREME}
+                r={ativa ? 5 : apt ? 5 : 4.2}
+                cor={ativa ? BRASA : apt ? OURO : CREME}
                 forma={ativa ? "estrela" : "circulo"}
                 estado={estadoSkill(n)}
                 rotulo={nomeCurto(n)}
-                rotuloAcima={p.acima}
                 selecionada={escolhida?.id === n.id}
                 onClick={() => setEscolhida({ tipo: "skill", id: n.id })}
               />
             );
           })}
           {!skills.length && (
-            <text x={CX + 330} y={CHAO - 140} textAnchor="middle" fill={NEUTRO} fontSize="13" fontFamily={SERIFA} fontStyle="italic">
+            <text x={CX} y={TOPO_TRONCO + 40} textAnchor="middle" fill={NEUTRO} fontSize="13" fontFamily={SERIFA} fontStyle="italic">
               Entre no site para ver as habilidades treinadas
             </text>
           )}
 
-          {/* tronco: o Dom, crescendo com o Parâmetro */}
-          <path d={`M${CX} ${topoTronco} L${CX} ${NIVEIS[14][1] + 20}`} stroke={dom.cor} strokeOpacity="0.25" strokeDasharray="3 6" strokeWidth="1.2" />
-          {[-9, 0, 9].map((dx, i) => (
-            <path
-              key={i}
-              d={`M${CX + dx} ${CHAO} C${CX + dx * 0.8 - 5} ${CHAO - 80} ${CX + dx * 0.4 + 5} ${topoTronco + 60} ${CX + dx * 0.15} ${topoTronco}`}
-              fill="none"
-              stroke={dom.cor}
-              strokeOpacity={i === 1 ? 0.9 : 0.4}
-              strokeWidth={i === 1 ? 2 : 1}
-            />
-          ))}
-          {/* anéis: os Parâmetros que abrem cada nível de técnica */}
-          {Object.keys(NIVEIS).map((nivel) => {
-            const y = yParametro(+nivel);
-            const alcancou = parametroEfetivo >= +nivel;
-            return (
-              <g key={nivel} opacity={alcancou ? 0.9 : 0.35}>
-                <line x1={CX - 16} y1={y} x2={CX + 16} y2={y} stroke={dom.cor} strokeWidth="1" />
-                <text x={CX + 22} y={y + 4} fill={dom.cor} fontSize="10.5" fontFamily={SERIFA} letterSpacing="1">P{nivel}</text>
-              </g>
-            );
-          })}
-
-          {/* copa: as técnicas */}
-          {dom.tecnicas.map((t) => {
-            const b = posTecnica[t.id];
-            const origens = t.exige.length ? t.exige.map((e) => posTecnica[e]) : [{ x: CX, y: yParametro(t.parametro) }];
-            return origens.map((a, i) => (
-              <path
-                key={`${t.id}${i}`}
-                d={`M${a.x} ${a.y} Q${(a.x + b.x) / 2 + (b.x - CX) * 0.15} ${Math.min(a.y, b.y) - 25} ${b.x} ${b.y}`}
-                fill="none"
-                stroke={dom.cor}
-                strokeOpacity={estadoTecnica(t) === "bloqueada" ? 0.2 : 0.65}
-                strokeDasharray={estadoTecnica(t) === "bloqueada" ? "3 5" : undefined}
-                strokeWidth="1.2"
-              />
-            ));
-          })}
-          {dom.tecnicas.map((t) => {
-            const p = posTecnica[t.id];
+          {/* técnicas do Dom */}
+          {dom.tecnicas.map((tc) => {
+            const p = pos[tc.id];
+            if (!p) return null;
             return (
               <Estrela
-                key={t.id}
+                key={tc.id}
                 x={p.x}
                 y={p.y}
-                r={t.parametro >= 14 ? 7 : 5.5}
+                r={tc.parametro >= 14 ? 7 : 5.5}
                 cor={dom.cor}
-                forma={t.tipo === "Ativa" ? "estrela" : "circulo"}
-                estado={estadoTecnica(t)}
-                rotulo={t.nome}
-                rotuloAcima={t.parametro >= 10}
-                selecionada={escolhida?.id === t.id}
-                onClick={() => setEscolhida({ tipo: "tecnica", id: t.id })}
+                forma={tc.tipo === "Ativa" ? "estrela" : "circulo"}
+                estado={estadoTecnica(tc)}
+                rotulo={`${tc.nome} · P${tc.parametro}`}
+                rotuloAcima={tc.parametro >= 14}
+                selecionada={escolhida?.id === tc.id}
+                onClick={() => setEscolhida({ tipo: "tecnica", id: tc.id })}
               />
             );
           })}
