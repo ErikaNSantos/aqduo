@@ -6,12 +6,13 @@ import urlEmblema from "../assets/emblema.png";
 // ─────────────────────────────────────────────
 // BOTÃO DOURADO COM BORDA PULSANTE
 // ─────────────────────────────────────────────
-function BotaoDourado({ children, onClick, tamanho = "normal" }) {
+function BotaoDourado({ children, onClick, tamanho = "normal", className }) {
   const grande = tamanho === "grande";
 
   return (
     <motion.button
       onClick={onClick}
+      className={className}
       style={{
         position: "relative",
         padding: grande ? "13px 40px" : "9px 22px",
@@ -190,19 +191,20 @@ export default function TelaInicial({ onEntrar }) {
 
       {/* ── NAVBAR — fade simples ao montar ── */}
       <motion.nav
+        className="nav-ordem"
         style={s.navbar}
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div style={s.navLogo}>
-          <img src={urlEmblema} alt="" style={s.logoImg} />
+          <img src={urlEmblema} alt="" className="nav-logo" style={s.logoImg} />
           <div>
-            <div style={s.navTitulo}>A QUEDA DE UMA ORDEM</div>
-            <div style={s.navSub}>O DESPERTAR DOS SCRIPS</div>
+            <div className="nav-titulo" style={s.navTitulo}>A QUEDA DE UMA ORDEM</div>
+            <div className="nav-sub" style={s.navSub}>O DESPERTAR DOS SCRIPS</div>
           </div>
         </div>
-        <BotaoDourado onClick={onEntrar}>ENTRAR NA ORDEM</BotaoDourado>
+        <BotaoDourado onClick={onEntrar} className="nav-botao">ENTRAR NA ORDEM</BotaoDourado>
       </motion.nav>
 
       {/* ── ABERTURA — a história contada pelo scroll, em 3D ── */}
