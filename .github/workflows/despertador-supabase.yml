@@ -1,0 +1,26 @@
+name: Despertador do Supabase
+
+# O plano gratuito do Supabase pausa o projeto depois de 7 dias sem uso.
+# Duas vezes por semana esta tarefa faz uma leitura simples no banco para mantê-lo acordado.
+on:
+  schedule:
+    - cron: "17 12 * * 1,4" # segundas e quintas, 9h17 em Brasília
+  workflow_dispatch:
+
+jobs:
+  acordar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ler uma linha do banco
+        env:
+          URL: ${{ vars.VITE_SUPABASE_URL }}
+          CHAVE: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$CHAVE" ]; then
+            echo "Faltam as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no repositório."
+            exit 1
+          fi
+          codigo=$(curl -s -o /dev/null -w "%{http_code}" "$URL/rest/v1/linhagens_mutantes?select=id&limit=1" \
+            -H "apikey: $CHAVE" -H "Authorization: Bearer $CHAVE")
+          echo "Resposta do Supabase: $codigo"
+          [ "$codigo" = "200" ] || [ "$codigo" = "206" ]
