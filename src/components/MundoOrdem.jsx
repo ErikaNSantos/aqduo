@@ -185,7 +185,7 @@ function opacidadeCapitulo(c, s) {
   return entra * (1 - sai);
 }
 
-export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEntrar }) {
+export default function MundoOrdem({ escolas = [], historia = [], fecho, onEscola, onEntrar }) {
   const secaoRef = useRef(null);
   const palcoRef = useRef(null);
   const rotuloRef = useRef(null);
@@ -917,6 +917,11 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
 
         {/* Capítulo 12: a entrada */}
         <div data-capitulo={FINAL} className="mo-final" style={st.final}>
+          {fecho && (
+            <p className="mo-final-fecho" style={st.finalFecho}>
+              {fecho}
+            </p>
+          )}
           <button type="button" style={st.painelBotao} onClick={() => onEntrar?.()}>
             ENTRAR NA ORDEM
           </button>
@@ -956,7 +961,7 @@ export default function MundoOrdem({ escolas = [], historia = [], onEscola, onEn
         {!entrou && (
           <div style={st.portao}>
             <p style={st.portaoTitulo}>A QUEDA DE UMA ORDEM</p>
-            <p style={st.portaoFrase}>“Esqueça tudo o que acredita saber. O que vou te revelar... muda tudo.”</p>
+            <p style={st.portaoFrase}>“Toda história que já te contaram está faltando um pedaço.”</p>
             <div style={st.portaoBotoes}>
               <button type="button" style={st.portaoBotao} onClick={() => entrar(true)}>
                 ENTRAR COM SOM
@@ -1022,6 +1027,7 @@ const st = {
     width: "min(90vw, 520px)",
     textAlign: "center",
   },
+  finalFecho: { margin: "0 0 6px", fontFamily: SERIFA, fontSize: "clamp(1em, 1.7vw, 1.2em)", lineHeight: 1.55, color: "#efe6cf", textShadow: "0 2px 18px rgba(0,0,0,0.9)" },
   finalDica: { margin: 0, fontSize: "0.7em", letterSpacing: "1px", color: "#7d8a92" },
   rolar: {
     position: "absolute",

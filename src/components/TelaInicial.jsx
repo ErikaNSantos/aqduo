@@ -83,19 +83,21 @@ function BotaoDourado({ children, onClick, tamanho = "normal", className }) {
 // ─────────────────────────────────────────────
 // LORE
 // ─────────────────────────────────────────────
-const HISTORIA = [
-  `No princípio, não havia som. Nem luz. Nem tempo. Apenas o silêncio absoluto de um nada que ainda não sabia que existia. Então... algo rompeu. Um estalo sem som, um clarão onde não havia olhos para ver. O universo nasceu.`,
-  `Milênios depois, um meteoro atravessou o céu carregando algo mais do que rocha — carregava energia ancestral, memória condensada do próprio nascimento do cosmos. Quando colidiu com a Terra, não trouxe apenas destruição. Trouxe uma herança.`,
-  `Essa energia infiltrou-se no solo, na água, nas raízes. E com o tempo, crianças começaram a nascer diferentes. Alguns com dons ligados à terra e ao fogo. Outros com força além do natural. Outros ainda, capazes de tocar a mente alheia como se fosse a própria. Eles se chamaram de Scrips.`,
-  `Os Norcans — os humanos sem mutação aparente — primeiro os reverenciaram. Depois os temeram. E o medo, diante da ganância, não sobrevive por muito tempo. A perseguição veio. As chamas da inquisição. O silêncio forçado de gerações inteiras.`,
-  `Os Scrips que sobreviveram criaram A Ordem — não como uma instituição de poder, mas como um pacto de sobrevivência. Uma lei única, gravada em cada membro desde o nascimento: nunca, em hipótese alguma, revele sua identidade a um Norcan. Ou pagará com a vida.`,
-  `A Ordem resistiu. Durante séculos, resistiu. Mas toda ordem tem seu fim. E o fim desta... pode estar mais próximo do que qualquer um imagina.`,
+// A história contada pela Scripeds a quem acabou de despertar. Cada capítulo
+// aparece num trecho do scroll da abertura em 3D (0 = o nada ... 7 = a lei).
+const CAPITULOS = [
+  `Se você chegou até aqui, provavelmente teve uma semana estranha. Coisas que quebraram sem você tocar, um calor nas mãos que não passava, um sonho que parecia lembrança. Calma. Não é loucura. Mas, para entender, a gente precisa voltar um pouco. Bem antes de você. Bem antes de tudo.`,
+  `Até que o nada explodiu em luz, cortando o silêncio e fazendo o universo nascer. Cru, quente, ainda sem forma nenhuma. Mas já com força para tudo o que viria depois.`,
+  `Bilhões de anos depois, um pedaço do que originou tudo ainda vagava pelo céu. Uma pedra que guardava o calor do primeiro dia e que, por coincidência ou não, caiu num planeta já habitado por eras de evolução.`,
+  `A rocha esfriou depois do impacto, a terra se assentando ao seu redor em um estranho silêncio. Por muito tempo, só silêncio.`,
+  `Mas a terra guardou. O azul desceu pelas rachaduras, dormiu nas pedras, subiu devagar pelas raízes. Hoje chamamos esse azul de Metrito. Muito tempo depois, uma mãe Norcan pegou o filho no colo pela primeira vez e não entendeu por que os olhos dele brilhavam no escuro.`,
+  `No começo, essas crianças eram bênção. A vizinha que fazia a planta crescer era chamada para benzer a roça. Mas bastou uma colheita ruim, uma doença sem explicação, e a bênção virou culpa. Os Norcans acenderam as tochas. Elas ficaram acesas por séculos.`,
+  `Quem sobreviveu aprendeu a se esconder bem. A cauda debaixo do casaco, os olhos atrás das lentes, o fogo guardado no bolso. E aprendeu, principalmente, a não ficar sozinho. Foi assim que nasceu A Ordem.`,
+  `A Ordem tem muitas regras, e você vai conhecer todas. Mas só uma não pode ser quebrada: nunca conte a um Norcan o que você é. A menos que queira descobrir onde estão todos que descumpriram essa regra.`,
 ];
 
-// A história em capítulos para a abertura em 3D: cada um aparece num trecho do scroll
-const [ANTES_DO_BIG_BANG, BIG_BANG] = HISTORIA[0].split(/(?=Então\.\.\.)/);
-const [METEORO, IMPACTO] = HISTORIA[1].split(/(?=Quando colidiu)/);
-const CAPITULOS = [ANTES_DO_BIG_BANG, BIG_BANG, METEORO, IMPACTO, ...HISTORIA.slice(2)].map((t) => t.trim());
+// Fecho da abertura, logo acima do botão de entrar
+const FECHO = `Nada disso explica exatamente as suas dúvidas. Tudo bem, ninguém chega sabendo tudo. Respira, ajeita a mochila e entra. Te explicamos tudo pelo caminho...`;
 
 const ESCOLAS_PADRAO = [
   {
@@ -208,7 +210,7 @@ export default function TelaInicial({ onEntrar }) {
       </motion.nav>
 
       {/* ── ABERTURA — a história contada pelo scroll, em 3D ── */}
-      <MundoOrdem escolas={escolas} historia={CAPITULOS} onEscola={setEscolaAtiva} onEntrar={onEntrar} />
+      <MundoOrdem escolas={escolas} historia={CAPITULOS} fecho={FECHO} onEscola={setEscolaAtiva} onEntrar={onEntrar} />
 
       {/* ── MODAL ── */}
       {escolaAtiva && ativaData && (
