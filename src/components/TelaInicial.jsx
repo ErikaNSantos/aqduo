@@ -89,15 +89,15 @@ const CAPITULOS = [
   `Se você chegou até aqui, provavelmente teve uma semana estranha. Coisas que quebraram sem você tocar, um calor nas mãos que não passava, um sonho que parecia lembrança. Calma. Não é loucura. Mas, para entender, a gente precisa voltar um pouco. Bem antes de você. Bem antes de tudo.`,
   `Até que o nada explodiu em luz, cortando o silêncio e fazendo o universo nascer. Cru, quente, ainda sem forma nenhuma. Mas já com força para tudo o que viria depois.`,
   `Bilhões de anos depois, um pedaço do que originou tudo ainda vagava pelo céu. Uma pedra que guardava o calor do primeiro dia e que, por coincidência ou não, caiu num planeta já habitado por eras de evolução.`,
-  `A rocha esfriou depois do impacto, a terra se assentando ao seu redor em um estranho silêncio. Por muito tempo, só silêncio.`,
-  `Mas a terra guardou. O azul desceu pelas rachaduras, dormiu nas pedras, subiu devagar pelas raízes. Hoje chamamos esse azul de Metrito. Muito tempo depois, uma mãe Norcan pegou o filho no colo pela primeira vez e não entendeu por que os olhos dele brilhavam no escuro.`,
+  `A rocha esfriou depois do impacto, a terra se assentando ao seu redor. Por muito tempo, nada se mexeu. Mas a terra guardou. O azul desceu pelas rachaduras, dormiu nas pedras, subiu devagar pelas raízes.`,
+  `Hoje chamamos esse azul de Metrito. Muito tempo depois, uma mãe Norcan pegou o filho no colo pela primeira vez e não entendeu por que os olhos dele brilhavam no escuro.`,
   `No começo, essas crianças eram bênção. A vizinha que fazia a planta crescer era chamada para benzer a roça. Mas bastou uma colheita ruim, uma doença sem explicação, e a bênção virou culpa. Os Norcans acenderam as tochas. Elas ficaram acesas por séculos.`,
   `Quem sobreviveu aprendeu a se esconder bem. A cauda debaixo do casaco, os olhos atrás das lentes, o fogo guardado no bolso. E aprendeu, principalmente, a não ficar sozinho. Foi assim que nasceu A Ordem.`,
   `A Ordem tem muitas regras, e você vai conhecer todas. Mas só uma não pode ser quebrada: nunca conte a um Norcan o que você é. A menos que queira descobrir onde estão todos que descumpriram essa regra.`,
 ];
 
 // Fecho da abertura, logo acima do botão de entrar
-const FECHO = `Nada disso explica exatamente as suas dúvidas. Tudo bem, ninguém chega sabendo tudo. Respira, ajeita a mochila e entra. Te explicamos tudo pelo caminho...`;
+const FECHO = `Nada disso responde todas as suas dúvidas. Tudo bem, ninguém chega sabendo tudo. Respira, ajeita a mochila e entra. Te explicamos tudo pelo caminho...`;
 
 const ESCOLAS_PADRAO = [
   {

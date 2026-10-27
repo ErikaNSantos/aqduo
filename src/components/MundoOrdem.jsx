@@ -903,6 +903,13 @@ export default function MundoOrdem({ escolas = [], historia = [], fecho, onEscol
           </p>
         ))}
 
+        {/* Fecho da história: aparece junto com o emblema final e o botão de entrar */}
+        {fecho && (
+          <p data-capitulo={FINAL} className="mo-capitulo" style={st.capitulo}>
+            {fecho}
+          </p>
+        )}
+
         {/* Capítulos 8 a 11: as escolas */}
         {escolas.slice(0, FINAL - CAP_ESCOLAS).map((e, i) => (
           <div key={e.id} data-capitulo={CAP_ESCOLAS + i} className="mo-escola" style={st.escola}>
@@ -917,11 +924,6 @@ export default function MundoOrdem({ escolas = [], historia = [], fecho, onEscol
 
         {/* Capítulo 12: a entrada */}
         <div data-capitulo={FINAL} className="mo-final" style={st.final}>
-          {fecho && (
-            <p className="mo-final-fecho" style={st.finalFecho}>
-              {fecho}
-            </p>
-          )}
           <button type="button" style={st.painelBotao} onClick={() => onEntrar?.()}>
             ENTRAR NA ORDEM
           </button>
@@ -1027,7 +1029,6 @@ const st = {
     width: "min(90vw, 520px)",
     textAlign: "center",
   },
-  finalFecho: { margin: "0 0 6px", fontFamily: SERIFA, fontSize: "clamp(1em, 1.7vw, 1.2em)", lineHeight: 1.55, color: "#efe6cf", textShadow: "0 2px 18px rgba(0,0,0,0.9)" },
   finalDica: { margin: 0, fontSize: "0.7em", letterSpacing: "1px", color: "#7d8a92" },
   rolar: {
     position: "absolute",
