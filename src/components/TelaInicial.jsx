@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import MundoOrdem from "./MundoOrdem";
 import urlEmblema from "../assets/emblema.png";
+import urlArtePrimordiais from "../assets/linhagens/primordiais.webp";
+import urlArteColossos from "../assets/linhagens/colossos.webp";
 
 // ─────────────────────────────────────────────
 // BOTÃO DOURADO COM BORDA PULSANTE
@@ -109,6 +111,7 @@ const GRUPOS_LINHAGENS = [
     id: "primordiais",
     nome: "Primordiais",
     subtitulo: "Por fora, parece gente",
+    arte: urlArtePrimordiais,
     cor: "#c47a2b",
     corGlow: "rgba(196,122,43,0.5)",
     icone: "◯",
@@ -126,6 +129,7 @@ Outras linhagens que A Ordem conhece: Anões, Hobbits, Ninfas, Semideuses.
     id: "colossos",
     nome: "Colossos",
     subtitulo: "O corpo passou da medida",
+    arte: urlArteColossos,
     cor: "#8b2020",
     corGlow: "rgba(139,32,32,0.5)",
     icone: "⬢",
@@ -254,6 +258,20 @@ function ModalEscola({ escola, onFechar }) {
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         onClick={(e) => e.stopPropagation()}
       >
+        {escola.arte && (
+          <img
+            src={escola.arte}
+            alt=""
+            style={{
+              display: "block",
+              width: "100%",
+              maxWidth: 380,
+              margin: "0 auto 22px",
+              borderRadius: "50%",
+              background: `radial-gradient(circle, ${escola.corGlow} 0%, transparent 70%)`,
+            }}
+          />
+        )}
         <div style={{ ...s.modalHead, borderBottomColor: escola.cor + "28" }}>
           <div>
             <span

@@ -13,19 +13,13 @@ import { criarArvores } from "./mundo/arvores";
 import { criarPortal } from "./mundo/portal";
 import { criarTrilha } from "./mundo/trilha";
 import { criarBigBang, criarMeteoro, criarTochas, criarEmblemaCeu, frenteOnda, suave } from "./mundo/historia";
-import urlTerra from "../assets/classes/terra.png";
-import urlFogo from "../assets/classes/fogo.png";
-import urlAgua from "../assets/classes/agua.png";
-import urlMente from "../assets/classes/mente.png";
-import urlTodos from "../assets/classes/todos.png";
-import urlPrimordiais from "../assets/linhagens/primordiais.webp";
 
 // ─────────────────────────────────────────────
 // ABERTURA EM 3D — a história contada pelo scroll
 // Rolar a página avança a história: o nada, o Big Bang, o meteoro cruzando o
 // espaço, o impacto na Serra da Cangalha (relevo real, scripts/gerar_terreno.py),
-// o Metrito azul se espalhando, a perseguição, A Ordem, o emblema e, por fim, as
-// escolas, cada uma com seu portal. No fim dá para girar e clicar nas escolas.
+// o Metrito azul se espalhando, a perseguição, A Ordem, o emblema e, por fim, os
+// quatro grupos de linhagens, cada um com seu portal. No fim dá para girar e clicar neles.
 // ─────────────────────────────────────────────
 
 const NOITE = "#0a0f14";
@@ -34,11 +28,6 @@ const AZUL = "#5cc3ff";
 const LADO = infoTerreno.km; // 1 unidade = 1 km
 const EXAGERO = 3.5; // o relevo real é baixo para o tamanho da cratera
 const ALT_REF = infoTerreno.altitude_min + 120;
-// Imagem dentro do portal de cada escola. Provisório: os ícones de classe da arte
-// do emblema, até existir a arte dos personagens.
-const IMAGEM_CLASSE = { primordiais: urlPrimordiais, terra: urlTerra, fogo: urlFogo, agua: urlAgua, mente: urlMente, todos: urlTodos };
-// Grupo de linhagens → arte no portal. Grupo sem arte ainda mostra só a cor.
-const CLASSE_DA_ESCOLA = { primordiais: "primordiais" };
 
 const CENTRO = new THREE.Vector3((infoTerreno.centro[0] - 0.5) * LADO, 0, (infoTerreno.centro[1] - 0.5) * LADO);
 
@@ -479,14 +468,16 @@ export default function MundoOrdem({ escolas = [], historia = [], passagem, fech
     let escolasPendentes = [];
     const texturaVazia = new THREE.DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1);
     texturaVazia.needsUpdate = true;
-    const carregadorClasses = new THREE.TextureLoader();
-    const texturasClasse = {};
-    const texturaDaClasse = (classe) => {
-      if (!texturasClasse[classe]) {
-        texturasClasse[classe] = carregadorClasses.load(IMAGEM_CLASSE[classe]);
-        texturasClasse[classe].colorSpace = THREE.SRGBColorSpace;
+    // A arte de cada grupo (traço claro em fundo transparente); grupo sem arte mostra só a cor.
+    const carregadorArtes = new THREE.TextureLoader();
+    const texturasArte = {};
+    const texturaDaArte = (url) => {
+      if (!url) return texturaVazia;
+      if (!texturasArte[url]) {
+        texturasArte[url] = carregadorArtes.load(url);
+        texturasArte[url].colorSpace = THREE.SRGBColorSpace;
       }
-      return texturasClasse[classe];
+      return texturasArte[url];
     };
     const portal = criarPortal();
     scene.add(portal.malha);
@@ -558,8 +549,7 @@ export default function MundoOrdem({ escolas = [], historia = [], passagem, fech
 
     function abrirPortal(alvo) {
       const e = alvo.userData.escola;
-      const classe = CLASSE_DA_ESCOLA[e.id];
-      portal.abrir(alvo.userData.chao.clone().add(new THREE.Vector3(0, 2.7, 0)), classe ? texturaDaClasse(classe) : texturaVazia, e.cor || OURO, 3.6);
+      portal.abrir(alvo.userData.chao.clone().add(new THREE.Vector3(0, 2.7, 0)), texturaDaArte(e.arte), e.cor || OURO, 3.6);
     }
     function abrirEscola(alvo) {
       escolaAberta = alvo;
@@ -859,7 +849,7 @@ export default function MundoOrdem({ escolas = [], historia = [], passagem, fech
       document.removeEventListener("visibilitychange", tocar);
       window.removeEventListener("keydown", aoTecla);
       portal.descartar();
-      Object.values(texturasClasse).forEach((t) => t.dispose());
+      Object.values(texturasArte).forEach((t) => t.dispose());
       texturaVazia.dispose();
       scene.traverse((o) => {
         if (!lixo.includes(o.geometry)) o.geometry?.dispose();
