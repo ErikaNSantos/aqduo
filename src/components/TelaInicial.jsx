@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import MundoOrdem from "./MundoOrdem";
 import urlEmblema from "../assets/emblema.png";
-import urlArtePrimordiais from "../assets/linhagens/primordiais.webp";
-import urlArteColossos from "../assets/linhagens/colossos.webp";
-import urlArteFeras from "../assets/linhagens/feras.webp";
-import urlArteEtereos from "../assets/linhagens/etereos.webp";
+import urlArtePrimordiais from "../assets/linhagens/primordiais-janela.webp";
+import urlArteColossos from "../assets/linhagens/colossos-janela.webp";
+import urlArteFeras from "../assets/linhagens/feras-janela.webp";
+import urlArteEtereos from "../assets/linhagens/etereos-janela.webp";
 import urlPortalPrimordiais from "../assets/linhagens/primordiais-portal.webp";
 import urlPortalColossos from "../assets/linhagens/colossos-portal.webp";
+import urlPortalFeras from "../assets/linhagens/feras-portal.webp";
+import urlPortalEtereos from "../assets/linhagens/etereos-portal.webp";
 
 // ─────────────────────────────────────────────
 // BOTÃO DOURADO COM BORDA PULSANTE
@@ -158,6 +160,7 @@ Outras linhagens que A Ordem conhece: Ogros, Trolls, Ciclopes, Titãs, Golens.
     nome: "Feras",
     subtitulo: "O corpo puxou para o animal",
     arte: urlArteFeras,
+    artePortal: urlPortalFeras,
     cor: "#4f8a3c",
     corGlow: "rgba(79,138,60,0.5)",
     icone: "✶",
@@ -178,6 +181,7 @@ Outras linhagens que A Ordem conhece: Lobisomens, Sereias, Centauros, Minotauros
     nome: "Etéreos",
     subtitulo: "Marcas de outro plano",
     arte: urlArteEtereos,
+    artePortal: urlPortalEtereos,
     cor: "#1a6b8a",
     corGlow: "rgba(26,107,138,0.5)",
     icone: "✦",
