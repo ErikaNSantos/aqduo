@@ -5,6 +5,9 @@ import urlEmblema from "../assets/emblema.png";
 import urlArtePrimordiais from "../assets/linhagens/primordiais.webp";
 import urlArteColossos from "../assets/linhagens/colossos.webp";
 import urlArteFeras from "../assets/linhagens/feras.webp";
+import urlArteEtereos from "../assets/linhagens/etereos.webp";
+import urlPortalPrimordiais from "../assets/linhagens/primordiais-portal.webp";
+import urlPortalColossos from "../assets/linhagens/colossos-portal.webp";
 
 // ─────────────────────────────────────────────
 // BOTÃO DOURADO COM BORDA PULSANTE
@@ -107,12 +110,15 @@ const PASSAGEM = `E essa energia não se apresentou igual em ninguém. Em uns, m
 
 // Os quatro grupos de linhagens, agrupadas pela forma como o Metrito apareceu no corpo.
 // Não são escolas: todo Scrip estuda junto na Scripeds. Na dúvida, vale o traço mais visível.
+// `arte` aparece grande na janela das linhagens; `artePortal` é uma versão mais simples e clara
+// para o portal, que é pequeno (sem ela, o portal usa `arte`).
 const GRUPOS_LINHAGENS = [
   {
     id: "primordiais",
     nome: "Primordiais",
     subtitulo: "Por fora, parece gente",
     arte: urlArtePrimordiais,
+    artePortal: urlPortalPrimordiais,
     cor: "#c47a2b",
     corGlow: "rgba(196,122,43,0.5)",
     icone: "◯",
@@ -131,6 +137,7 @@ Outras linhagens que A Ordem conhece: Anões, Hobbits, Ninfas, Semideuses.
     nome: "Colossos",
     subtitulo: "O corpo passou da medida",
     arte: urlArteColossos,
+    artePortal: urlPortalColossos,
     cor: "#8b2020",
     corGlow: "rgba(139,32,32,0.5)",
     icone: "⬢",
@@ -170,6 +177,7 @@ Outras linhagens que A Ordem conhece: Lobisomens, Sereias, Centauros, Minotauros
     id: "etereos",
     nome: "Etéreos",
     subtitulo: "Marcas de outro plano",
+    arte: urlArteEtereos,
     cor: "#1a6b8a",
     corGlow: "rgba(26,107,138,0.5)",
     icone: "✦",

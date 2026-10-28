@@ -549,7 +549,7 @@ export default function MundoOrdem({ escolas = [], historia = [], passagem, fech
 
     function abrirPortal(alvo) {
       const e = alvo.userData.escola;
-      portal.abrir(alvo.userData.chao.clone().add(new THREE.Vector3(0, 2.7, 0)), texturaDaArte(e.arte), e.cor || OURO, 3.6);
+      portal.abrir(alvo.userData.chao.clone().add(new THREE.Vector3(0, 2.7, 0)), texturaDaArte(e.artePortal || e.arte), e.cor || OURO, 3.6);
     }
     function abrirEscola(alvo) {
       escolaAberta = alvo;
