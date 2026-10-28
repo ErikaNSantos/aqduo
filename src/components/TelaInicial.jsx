@@ -99,82 +99,85 @@ const CAPITULOS = [
 // Fecho da abertura, logo acima do botão de entrar
 const FECHO = `Nada disso responde todas as suas dúvidas. Tudo bem, ninguém chega sabendo tudo. Respira, ajeita a mochila e entra. Te explicamos tudo pelo caminho...`;
 
-const ESCOLAS_PADRAO = [
+// Passagem entre a história e as luzes da cratera
+const PASSAGEM = `E essa energia não se apresentou igual em ninguém. Em uns, mal dá pra notar. Em outros, não tem casaco que esconda. Com o tempo, a gente aprendeu a reconhecer quatro jeitos de ela aparecer.`;
+
+// Os quatro grupos de linhagens, agrupadas pela forma como o Metrito apareceu no corpo.
+// Não são escolas: todo Scrip estuda junto na Scripeds. Na dúvida, vale o traço mais visível.
+const GRUPOS_LINHAGENS = [
   {
     id: "primordiais",
-    nome: "Bastião de Rocha",
-    subtitulo: "Primordiais",
+    nome: "Primordiais",
+    subtitulo: "Por fora, parece gente",
     cor: "#c47a2b",
     corGlow: "rgba(196,122,43,0.5)",
-    icone: "🜂",
-    lat: -15,
-    lng: -48,
+    icone: "◯",
     resumo:
-      "Nascidos da terra. Canais das forças elementais que moldaram o mundo antes de qualquer nome.",
-    lore: `Nos primeiros dias após o impacto do meteoro, quando a energia ainda queimava as raízes do mundo, os primeiros Scrips nasceram da própria terra.
+      "A orelha um pouco mais pontuda, a mão que nunca sente frio, o olhar que demora demais. Quase nada. E é esse quase que eles passam a vida escondendo.",
+    lore: `São os que passariam despercebidos numa fila de banco. A orelha um pouco mais pontuda, a mão que nunca sente frio, o olhar que demora demais. Quase nada. E é esse quase que eles passam a vida escondendo.
 
-Os Primordiais carregam no sangue a memória do solo — pedra, fogo, raiz e água bruta. Dizem os mais velhos que ao nascer, um Primordial faz a terra tremer sob seus pés, como se o mundo reconhecesse um de seus filhos.
+Na Scripeds hoje: Humanos e Elfos.
 
-O Bastião de Rocha foi fundado nas montanhas do sul, onde os primeiros enclaves Scrip sobreviveram à Inquisição dos Sábios escondidos nas cavernas magnéticas.
+Outras linhagens que A Ordem conhece: Anões, Hobbits, Ninfas, Semideuses.
 
-"A pedra não cede. A pedra espera."`,
+"Ninguém repara. Até reparar."`,
   },
   {
     id: "colossos",
-    nome: "Forja de Titãs",
-    subtitulo: "Colossos",
+    nome: "Colossos",
+    subtitulo: "O corpo passou da medida",
     cor: "#8b2020",
     corGlow: "rgba(139,32,32,0.5)",
-    icone: "⚔",
-    lat: 48,
-    lng: 12,
+    icone: "⬢",
     resumo:
-      "Os que ficaram quando todos fugiram. Corpos forjados no impacto, espíritos forjados na escolha.",
-    lore: `Quando os Norcans começaram a caçar os Scrips, nem todos fugiram. Alguns ficaram. Não por orgulho — por necessidade. Alguém precisava proteger os que corriam.
+      "Ombros que não passam pela porta, passos que fazem o chão reclamar, pele que lembra pedra. Os que mais sofrem para se esconder e os primeiros a ficar na frente.",
+    lore: `O Metrito pesou neles. Ombros que não passam pela porta, passos que fazem o chão reclamar, pele que lembra pedra.
 
-Os Colossos nasceram dessa escolha. Com o tempo, seus corpos aprenderam a linguagem da força — uma presença que faz o ar ao redor ficar mais denso.
+São os que mais sofrem para se esconder entre os Norcans. E os primeiros a ficar na frente quando alguém precisa ser protegido.
 
-A Forja de Titãs não é um lugar para os fracos de espírito. Não porque sejam cruéis — mas porque o peso que carregam exige uma âncora interior que poucos conseguem desenvolver.
+Na Scripeds em breve: Gigantes.
+
+Outras linhagens que A Ordem conhece: Ogros, Trolls, Ciclopes, Titãs, Golens.
 
 "Não somos os maiores. Somos os que ficaram."`,
   },
   {
-    id: "mentalistas",
-    nome: "Cidadela do Pensamento",
-    subtitulo: "Mentalistas",
-    cor: "#6b2fa0",
-    corGlow: "rgba(107,47,160,0.5)",
-    icone: "◈",
-    lat: 32,
-    lng: 108,
+    id: "feras",
+    nome: "Feras",
+    subtitulo: "O corpo puxou para o animal",
+    cor: "#4f8a3c",
+    corGlow: "rgba(79,138,60,0.5)",
+    icone: "✶",
     resumo:
-      "Guardiões da memória coletiva. O que a Inquisição queimou, eles carregam vivo dentro de si.",
-    lore: `A Inquisição dos Sábios não queimou apenas corpos. Queimou registros, memórias, nomes. Queimou séculos de conhecimento Scrip que jamais será recuperado.
+      "Pelo, escama, garra, um faro que sente a chuva antes dela cair. Os Norcans contaram histórias sobre eles por séculos. Erraram quase tudo.",
+    lore: `Neles, a energia lembrou de tudo o que já rastejou, nadou e voou. Pelo, escama, garra, um faro que sente a chuva antes dela cair.
 
-Os Mentalistas decidiram que isso nunca mais aconteceria. Seus dons não se manifestam na pele — se manifestam nos intervalos entre os pensamentos.
+Os Norcans contaram histórias sobre eles por séculos. Erraram quase tudo.
 
-A Cidadela do Pensamento não tem endereço fixo. Move-se. Vive nas mentes dos seus membros.
+Na Scripeds hoje: Bestiais.
 
-"O que foi queimado não se perdeu. Está aqui. Sempre esteve."`,
+Outras linhagens que A Ordem conhece: Lobisomens, Sereias, Centauros, Minotauros, Harpias, Draconianos.
+
+"O instinto chegou antes do nome."`,
   },
   {
-    id: "eter",
-    nome: "Santuário do Éter",
-    subtitulo: "Éter",
+    id: "etereos",
+    nome: "Etéreos",
+    subtitulo: "Marcas de outro plano",
     cor: "#1a6b8a",
     corGlow: "rgba(26,107,138,0.5)",
     icone: "✦",
-    lat: -25,
-    lng: 133,
     resumo:
-      "Os inclassificáveis. Entre todas as categorias e nenhuma delas. O refúgio dos que o mundo não soube nomear.",
-    lore: `Existem Scrips cujos dons não se encaixam em nenhuma das categorias que a Ordem criou. Não são da terra, não são da força, não são da mente.
+      "Asas que não deveriam caber nas costas, chifres, presas, uma luz que não vem de lugar nenhum. Os Norcans chamaram uns de anjos e outros de demônios. Nenhum dos dois nomes estava certo.",
+    lore: `Asas que não deveriam caber nas costas, chifres, presas, uma luz que não vem de lugar nenhum.
 
-O Santuário do Éter foi criado não como escola, mas como refúgio. Um lugar onde a pergunta "o que você é?" não precisa de resposta imediata.
+Os Norcans chamaram uns de anjos e outros de demônios. Nenhum dos dois nomes estava certo.
 
-São os mais difíceis de encontrar. E os mais difíceis de perder, quando encontrados.
+Na Scripeds hoje: Angelicais e Demons. Em breve: Vampiros.
 
-"Não pertencemos a um lugar. Pertencemos ao intervalo."`,
+Outras linhagens que A Ordem conhece: Espectros, Djinns.
+
+"Não viemos de cima nem de baixo. Viemos daqui."`,
   },
 ];
 
@@ -183,7 +186,7 @@ São os mais difíceis de encontrar. E os mais difíceis de perder, quando encon
 // ─────────────────────────────────────────────
 export default function TelaInicial({ onEntrar }) {
   const [escolaAtiva, setEscolaAtiva] = useState(null);
-  const escolas = ESCOLAS_PADRAO;
+  const escolas = GRUPOS_LINHAGENS;
   const ativaData = escolas.find((e) => e.id === escolaAtiva);
 
   return (
@@ -210,7 +213,7 @@ export default function TelaInicial({ onEntrar }) {
       </motion.nav>
 
       {/* ── ABERTURA — a história contada pelo scroll, em 3D ── */}
-      <MundoOrdem escolas={escolas} historia={CAPITULOS} fecho={FECHO} onEscola={setEscolaAtiva} onEntrar={onEntrar} />
+      <MundoOrdem escolas={escolas} historia={CAPITULOS} passagem={PASSAGEM} fecho={FECHO} onEscola={setEscolaAtiva} onEntrar={onEntrar} />
 
       {/* ── MODAL ── */}
       {escolaAtiva && ativaData && (

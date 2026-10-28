@@ -36,7 +36,8 @@ const ALT_REF = infoTerreno.altitude_min + 120;
 // Imagem dentro do portal de cada escola. Provisório: os ícones de classe da arte
 // do emblema, até existir a arte dos personagens.
 const IMAGEM_CLASSE = { terra: urlTerra, fogo: urlFogo, agua: urlAgua, mente: urlMente, todos: urlTodos };
-const CLASSE_DA_ESCOLA = { primordiais: "terra", colossos: "fogo", mentalistas: "mente", eter: "todos" };
+// Grupo de linhagens → ícone no portal. Vazio até chegar a arte dos grupos: o portal mostra só a cor.
+const CLASSE_DA_ESCOLA = {};
 
 const CENTRO = new THREE.Vector3((infoTerreno.centro[0] - 0.5) * LADO, 0, (infoTerreno.centro[1] - 0.5) * LADO);
 
@@ -185,7 +186,7 @@ function opacidadeCapitulo(c, s) {
   return entra * (1 - sai);
 }
 
-export default function MundoOrdem({ escolas = [], historia = [], fecho, onEscola, onEntrar }) {
+export default function MundoOrdem({ escolas = [], historia = [], passagem, fecho, onEscola, onEntrar }) {
   const secaoRef = useRef(null);
   const palcoRef = useRef(null);
   const rotuloRef = useRef(null);
@@ -472,6 +473,8 @@ export default function MundoOrdem({ escolas = [], historia = [], fecho, onEscol
     mundo.add(grupoEscolas);
     const alvosClique = [];
     let escolasPendentes = [];
+    const texturaVazia = new THREE.DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1);
+    texturaVazia.needsUpdate = true;
     const carregadorClasses = new THREE.TextureLoader();
     const texturasClasse = {};
     const texturaDaClasse = (classe) => {
@@ -551,8 +554,8 @@ export default function MundoOrdem({ escolas = [], historia = [], fecho, onEscol
 
     function abrirPortal(alvo) {
       const e = alvo.userData.escola;
-      const classe = CLASSE_DA_ESCOLA[e.id] || "todos";
-      portal.abrir(alvo.userData.chao.clone().add(new THREE.Vector3(0, 2.7, 0)), texturaDaClasse(classe), e.cor || OURO, 3.6);
+      const classe = CLASSE_DA_ESCOLA[e.id];
+      portal.abrir(alvo.userData.chao.clone().add(new THREE.Vector3(0, 2.7, 0)), classe ? texturaDaClasse(classe) : texturaVazia, e.cor || OURO, 3.6);
     }
     function abrirEscola(alvo) {
       escolaAberta = alvo;
@@ -853,6 +856,7 @@ export default function MundoOrdem({ escolas = [], historia = [], fecho, onEscol
       window.removeEventListener("keydown", aoTecla);
       portal.descartar();
       Object.values(texturasClasse).forEach((t) => t.dispose());
+      texturaVazia.dispose();
       scene.traverse((o) => {
         if (!lixo.includes(o.geometry)) o.geometry?.dispose();
         if (o.material && !lixo.includes(o.material)) o.material.dispose?.();
@@ -910,14 +914,19 @@ export default function MundoOrdem({ escolas = [], historia = [], fecho, onEscol
           </p>
         )}
 
-        {/* Capítulos 8 a 11: as escolas */}
+        {/* Capítulos 8 a 11: os grupos de linhagens; a passagem os apresenta junto com o primeiro */}
+        {passagem && (
+          <p data-capitulo={CAP_ESCOLAS} className="mo-capitulo mo-passagem" style={st.capitulo}>
+            {passagem}
+          </p>
+        )}
         {escolas.slice(0, FINAL - CAP_ESCOLAS).map((e, i) => (
           <div key={e.id} data-capitulo={CAP_ESCOLAS + i} className="mo-escola" style={st.escola}>
             <p style={{ ...st.painelSub, color: e.cor || OURO }}>{e.subtitulo}</p>
             <h2 style={st.painelNome}>{e.nome}</h2>
             <p className="mo-escola-resumo" style={st.escolaResumo}>{e.resumo}</p>
             <button type="button" style={st.painelBotao} onClick={() => onEscola?.(e.id)}>
-              CONHECER A ESCOLA
+              CONHECER AS LINHAGENS
             </button>
           </div>
         ))}
@@ -928,7 +937,7 @@ export default function MundoOrdem({ escolas = [], historia = [], fecho, onEscol
             ENTRAR NA ORDEM
           </button>
           <p className="mo-final-dica" style={st.finalDica}>
-            Arraste para girar as pedras · toque nas luzes para rever as escolas
+            Arraste para girar as pedras · toque nas luzes para rever as linhagens
           </p>
         </div>
 
@@ -946,7 +955,7 @@ export default function MundoOrdem({ escolas = [], historia = [], fecho, onEscol
               <p style={{ ...st.painelSub, color: selecionada.cor || OURO }}>{selecionada.subtitulo}</p>
               <h2 style={st.painelNome}>{selecionada.nome}</h2>
               <button type="button" style={st.painelBotao} onClick={() => onEscola?.(selecionada.id)}>
-                CONHECER A ESCOLA
+                CONHECER AS LINHAGENS
               </button>
             </div>
           </>
