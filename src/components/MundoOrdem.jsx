@@ -18,6 +18,7 @@ import urlFogo from "../assets/classes/fogo.png";
 import urlAgua from "../assets/classes/agua.png";
 import urlMente from "../assets/classes/mente.png";
 import urlTodos from "../assets/classes/todos.png";
+import urlPrimordiais from "../assets/linhagens/primordiais.webp";
 
 // ─────────────────────────────────────────────
 // ABERTURA EM 3D — a história contada pelo scroll
@@ -35,9 +36,9 @@ const EXAGERO = 3.5; // o relevo real é baixo para o tamanho da cratera
 const ALT_REF = infoTerreno.altitude_min + 120;
 // Imagem dentro do portal de cada escola. Provisório: os ícones de classe da arte
 // do emblema, até existir a arte dos personagens.
-const IMAGEM_CLASSE = { terra: urlTerra, fogo: urlFogo, agua: urlAgua, mente: urlMente, todos: urlTodos };
-// Grupo de linhagens → ícone no portal. Vazio até chegar a arte dos grupos: o portal mostra só a cor.
-const CLASSE_DA_ESCOLA = {};
+const IMAGEM_CLASSE = { primordiais: urlPrimordiais, terra: urlTerra, fogo: urlFogo, agua: urlAgua, mente: urlMente, todos: urlTodos };
+// Grupo de linhagens → arte no portal. Grupo sem arte ainda mostra só a cor.
+const CLASSE_DA_ESCOLA = { primordiais: "primordiais" };
 
 const CENTRO = new THREE.Vector3((infoTerreno.centro[0] - 0.5) * LADO, 0, (infoTerreno.centro[1] - 0.5) * LADO);
 
@@ -148,9 +149,11 @@ const matCintilante = (tamanho) =>
 
 // Capítulos da história, na ordem do scroll. `s` vai de 0 (o nada) a FINAL.
 // 0 o nada · 1 Big Bang · 2 o meteoro · 3 o impacto · 4 a energia no solo (os Scrips)
-// 5 a perseguição · 6 A Ordem · 7 o emblema · 8 a 11 as escolas · 12 o emblema e a entrada
-const CAP_ESCOLAS = 8;
-const FINAL = 12;
+// 5 a perseguição · 6 A Ordem · 7 o emblema · 8 a passagem para as linhagens
+// 9 a 12 os grupos de linhagens · 13 o emblema e a entrada
+const CAP_PASSAGEM = 8;
+const CAP_ESCOLAS = 9;
+const FINAL = 13;
 
 const ESPACO = CENTRO.clone().add(new THREE.Vector3(0, 70, 0)); // onde o universo nasce
 const ORIGEM_METEORO = CENTRO.clone().add(new THREE.Vector3(-10, 20, -14));
@@ -176,6 +179,7 @@ const POSES_FIXAS = {
   5: orbita(9, 1.3, 1.8, 0.6),
   6: orbita(18, 0.62, 2.5, -0.4),
   7: { pos: orbita(17, 1.42, 3.0).pos, alvo: CENTRO.clone().add(new THREE.Vector3(0, 7.2, 0)) },
+  [CAP_PASSAGEM]: orbita(20, 0.9, 3.2, 0), // a cratera de cima, com as quatro luzes na borda
 };
 POSES_FIXAS[FINAL] = { pos: orbita(19, 1.42, 3.4).pos, alvo: CENTRO.clone().add(new THREE.Vector3(0, 7.2, 0)) };
 
@@ -268,7 +272,7 @@ export default function MundoOrdem({ escolas = [], historia = [], passagem, fech
     scene.add(meteoro.grupo);
     const texturaEmblema = g(new THREE.TextureLoader().load(urlEmblema, () => emblema.ajustarProporcao()));
     texturaEmblema.colorSpace = THREE.SRGBColorSpace;
-    const emblema = criarEmblemaCeu({ textura: texturaEmblema, posicao: CENTRO.clone().add(new THREE.Vector3(0, 7.6, 0)), altura: estreito || window.innerHeight < 500 ? 6.5 : 8 });
+    const emblema = criarEmblemaCeu({ textura: texturaEmblema, posicao: CENTRO.clone().add(new THREE.Vector3(0, 7.6, 0)), altura: estreito || window.innerHeight < 500 ? 6.5 : 8, fim: FINAL });
     scene.add(emblema.malha);
 
     // Fragmentos arrancados pela queda, subindo em coluna sobre o centro do impacto
@@ -656,7 +660,7 @@ export default function MundoOrdem({ escolas = [], historia = [], passagem, fech
       if (matTerreno) matTerreno.emissiveIntensity = (0.9 + 0.3 * Math.sin(t * 1.3)) * metritoAceso;
 
       const subida = suave(3, 4, s);
-      const emOrbita = suave(6.5, 7.0, s) * (1 - suave(7.5, 7.95, s)) + suave(11.4, 11.95, s);
+      const emOrbita = suave(6.5, 7.0, s) * (1 - suave(7.5, 7.95, s)) + suave(FINAL - 0.6, FINAL - 0.05, s);
       if (!reduz) giroPedras += velocidadePedras * dt;
       velocidadePedras += (0.12 - velocidadePedras) * (1 - Math.exp(-dt * 0.8)); // volta ao giro lento
       const ce = emblema.centro;
@@ -803,7 +807,7 @@ export default function MundoOrdem({ escolas = [], historia = [], passagem, fech
       arrastando = null;
     };
     const aoSair = () => ponteiro.set(9, 9);
-    const emblemaNoCeu = () => (s > 6.6 && s < 7.9) || s > 11.5;
+    const emblemaNoCeu = () => (s > 6.6 && s < 7.9) || s > FINAL - 0.5;
     const aoTecla = (ev) => {
       if (ev.key === "Escape" && escolaAberta) fecharEscola();
     };
@@ -914,12 +918,13 @@ export default function MundoOrdem({ escolas = [], historia = [], passagem, fech
           </p>
         )}
 
-        {/* Capítulos 8 a 11: os grupos de linhagens; a passagem os apresenta junto com o primeiro */}
+        {/* Capítulo 8: a passagem que apresenta os grupos de linhagens */}
         {passagem && (
-          <p data-capitulo={CAP_ESCOLAS} className="mo-capitulo mo-passagem" style={st.capitulo}>
+          <p data-capitulo={CAP_PASSAGEM} className="mo-capitulo" style={st.capitulo}>
             {passagem}
           </p>
         )}
+        {/* Capítulos 9 a 12: os grupos de linhagens */}
         {escolas.slice(0, FINAL - CAP_ESCOLAS).map((e, i) => (
           <div key={e.id} data-capitulo={CAP_ESCOLAS + i} className="mo-escola" style={st.escola}>
             <p style={{ ...st.painelSub, color: e.cor || OURO }}>{e.subtitulo}</p>
@@ -931,7 +936,7 @@ export default function MundoOrdem({ escolas = [], historia = [], passagem, fech
           </div>
         ))}
 
-        {/* Capítulo 12: a entrada */}
+        {/* Capítulo 13: a entrada */}
         <div data-capitulo={FINAL} className="mo-final" style={st.final}>
           <button type="button" style={st.painelBotao} onClick={() => onEntrar?.()}>
             ENTRAR NA ORDEM

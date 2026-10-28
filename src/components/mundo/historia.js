@@ -185,11 +185,11 @@ export function criarTochas({ texturaBrilho, relevo, centro, quantidade = 70 }) 
 }
 
 /**
- * O emblema de A Ordem no céu: aparece quando a história chega na Ordem e de novo no fim.
+ * O emblema de A Ordem no céu: aparece quando a história chega na Ordem e de novo no fim (capítulo `fim`).
  * Flutua devagar, a rachadura pulsa em azul (o Metrito) e o disco se inclina de leve
  * seguindo o ponteiro.
  */
-export function criarEmblemaCeu({ textura, posicao, altura = 9, cor = "#5cc3ff" }) {
+export function criarEmblemaCeu({ textura, posicao, altura = 9, cor = "#5cc3ff", fim = 12 }) {
   const geo = new THREE.PlaneGeometry(1, 1);
   const mat = new THREE.ShaderMaterial({
     uniforms: { mapa: { value: textura }, opacidade: { value: 0 }, tempo: { value: 0 }, cor: { value: new THREE.Color(cor) } },
@@ -231,7 +231,7 @@ export function criarEmblemaCeu({ textura, posicao, altura = 9, cor = "#5cc3ff" 
     },
     /** ponteiro: posição do mouse de -1 a 1 (para a inclinação) */
     atualizar(s, t, camera, ponteiro) {
-      const o = suave(6.55, 7.05, s) * (1 - suave(7.55, 7.95, s)) + suave(11.45, 11.95, s);
+      const o = suave(6.55, 7.05, s) * (1 - suave(7.55, 7.95, s)) + suave(fim - 0.55, fim - 0.05, s);
       mat.uniforms.opacidade.value = Math.min(1, o);
       mat.uniforms.tempo.value = t;
       malha.visible = o > 0.01;

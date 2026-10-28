@@ -35,7 +35,7 @@ const fragment = `
     float dentro = smoothstep(R + 0.02, R - 0.16, r) * step(0.001, abertura);
     float tor = pow(clamp(r / max(R, 0.001), 0.0, 1.0), 3.0) * 0.35 * sin(tempo * 0.7);
     vec2 q = mat2(cos(tor), -sin(tor), sin(tor), cos(tor)) * p;
-    vec2 uvImg = q / max(R, 0.001) * 0.58 + 0.5;
+    vec2 uvImg = q / max(R, 0.001) * 0.5 + 0.5; // a imagem inteira cabe no disco
     vec4 img = texture2D(imagem, uvImg);
     // fundo do disco na cor da escola, mais claro no meio, com o mesmo redemoinho da borda
     float rodamoinho = fbm(vec2(cos(giro), sin(giro)) * 1.6 + vec2(r * 3.0 - tempo * 0.6, tempo * 0.2));

@@ -172,12 +172,6 @@ code {
     font-size: 0.85em !important;
     line-height: 1.45 !important;
   }
-  /* o portal ocupa o alto da tela no celular: um fundo escuro mantém a passagem legível */
-  .mo-passagem {
-    background: rgba(4, 8, 12, 0.72);
-    padding: 12px 14px;
-    border-radius: 4px;
-  }
   .mo-final {
     bottom: 76px !important;
   }
