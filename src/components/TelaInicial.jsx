@@ -4,6 +4,7 @@ import MundoOrdem from "./MundoOrdem";
 import urlEmblema from "../assets/emblema.png";
 import urlArtePrimordiais from "../assets/linhagens/primordiais.webp";
 import urlArteColossos from "../assets/linhagens/colossos.webp";
+import urlArteFeras from "../assets/linhagens/feras.webp";
 
 // ─────────────────────────────────────────────
 // BOTÃO DOURADO COM BORDA PULSANTE
@@ -149,6 +150,7 @@ Outras linhagens que A Ordem conhece: Ogros, Trolls, Ciclopes, Titãs, Golens.
     id: "feras",
     nome: "Feras",
     subtitulo: "O corpo puxou para o animal",
+    arte: urlArteFeras,
     cor: "#4f8a3c",
     corGlow: "rgba(79,138,60,0.5)",
     icone: "✶",
