@@ -121,8 +121,8 @@ const GRUPOS_LINHAGENS = [
     subtitulo: "Por fora, parece gente",
     arte: urlArtePrimordiais,
     artePortal: urlPortalPrimordiais,
-    cor: "#c47a2b",
-    corGlow: "rgba(196,122,43,0.5)",
+    cor: "#d9b45a",
+    corGlow: "rgba(217,180,90,0.5)",
     icone: "◯",
     resumo:
       "A orelha um pouco mais pontuda, a mão que nunca sente frio, o olhar que demora demais. Quase nada. E é esse quase que eles passam a vida escondendo.",
@@ -140,8 +140,8 @@ Outras linhagens que A Ordem conhece: Anões, Hobbits, Ninfas, Semideuses.
     subtitulo: "O corpo passou da medida",
     arte: urlArteColossos,
     artePortal: urlPortalColossos,
-    cor: "#8b2020",
-    corGlow: "rgba(139,32,32,0.5)",
+    cor: "#7d6bb0",
+    corGlow: "rgba(125,107,176,0.5)",
     icone: "⬢",
     resumo:
       "Ombros que não passam pela porta, passos que fazem o chão reclamar, pele que lembra pedra. Os que mais sofrem para se esconder e os primeiros a ficar na frente.",
@@ -161,8 +161,8 @@ Outras linhagens que A Ordem conhece: Ogros, Trolls, Ciclopes, Titãs, Golens.
     subtitulo: "O corpo puxou para o animal",
     arte: urlArteFeras,
     artePortal: urlPortalFeras,
-    cor: "#4f8a3c",
-    corGlow: "rgba(79,138,60,0.5)",
+    cor: "#4f9a4a",
+    corGlow: "rgba(79,154,74,0.5)",
     icone: "✶",
     resumo:
       "Pelo, escama, garra, um faro que sente a chuva antes dela cair. Os Norcans contaram histórias sobre eles por séculos. Erraram quase tudo.",
@@ -182,8 +182,8 @@ Outras linhagens que A Ordem conhece: Lobisomens, Sereias, Centauros, Minotauros
     subtitulo: "Marcas de outro plano",
     arte: urlArteEtereos,
     artePortal: urlPortalEtereos,
-    cor: "#1a6b8a",
-    corGlow: "rgba(26,107,138,0.5)",
+    cor: "#2f8fc4",
+    corGlow: "rgba(47,143,196,0.5)",
     icone: "✦",
     resumo:
       "Asas que não deveriam caber nas costas, chifres, presas, uma luz que não vem de lugar nenhum. Os Norcans chamaram uns de anjos e outros de demônios. Nenhum dos dois nomes estava certo.",
