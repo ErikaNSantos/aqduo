@@ -14,41 +14,6 @@ const GEO_URL =
 const MAP_W = 800;
 const MAP_H = 400;
 
-const ESCOLAS = [
-  {
-    id: "primordiais",
-    nome: "Bastião de Rocha",
-    icone: "🜂",
-    cor: "#e0954a",
-    lat: -15,
-    lng: -48,
-  },
-  {
-    id: "colossos",
-    nome: "Forja de Titãs",
-    icone: "⚔",
-    cor: "#e0604a",
-    lat: 48,
-    lng: 12,
-  },
-  {
-    id: "mentalistas",
-    nome: "Cidadela do Pensamento",
-    icone: "◈",
-    cor: "#b58ae0",
-    lat: 32,
-    lng: 108,
-  },
-  {
-    id: "eter",
-    nome: "Santuário do Éter",
-    icone: "✦",
-    cor: "#5cc3ff",
-    lat: -25,
-    lng: 133,
-  },
-];
-
 // Onde o meteoro caiu (Tocantins), em [longitude, latitude]
 const SERRA_DA_CANGALHA = [-46.867, -8.083];
 
@@ -97,7 +62,6 @@ export default function PainelPrincipal({ session, onSair }) {
   const [criandoFicha, setCriandoFicha] = useState(false);
   const [fichaParaContinuar, setFichaParaContinuar] = useState(null);
   const [fichaVerDetalhes, setFichaVerDetalhes] = useState(null);
-  const [escolaHover, setEscolaHover] = useState(null);
   const [linhagensMap, setLinhagensMap] = useState({});
   const [userRole, setUserRole] = useState("jogador");
 
@@ -198,8 +162,6 @@ export default function PainelPrincipal({ session, onSair }) {
     if (abaAtiva === "inicio") {
       return (
         <ViewInicio
-          escolaHover={escolaHover}
-          setEscolaHover={setEscolaHover}
           personagemSelecionado={personagemSelecionado}
           nomeLinhagem={nomeLinhagem}
         />
@@ -374,8 +336,6 @@ export default function PainelPrincipal({ session, onSair }) {
 // VIEW: INÍCIO
 // ─────────────────────────────────────────────
 function ViewInicio({
-  escolaHover,
-  setEscolaHover,
   personagemSelecionado,
   nomeLinhagem,
 }) {
@@ -504,102 +464,6 @@ function ViewInicio({
                 );
               })()}
 
-            {projecao &&
-              ESCOLAS.map((escola, idx) => {
-                const coords = projecao([escola.lng, escola.lat]);
-                if (!coords) return null;
-                const [cx, cy] = coords;
-                const hover = escolaHover === escola.id;
-
-                return (
-                  <g
-                    key={escola.id}
-                    style={{ cursor: "pointer" }}
-                    onMouseEnter={() => setEscolaHover(escola.id)}
-                    onMouseLeave={() => setEscolaHover(null)}
-                  >
-                    <motion.circle
-                      cx={cx}
-                      cy={cy}
-                      r={hover ? 20 : 14}
-                      fill={escola.cor}
-                      opacity={0.07}
-                      animate={{ r: [12, 18, 12], opacity: [0.05, 0.12, 0.05] }}
-                      transition={{
-                        duration: 2.6,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: idx * 0.65,
-                      }}
-                    />
-                    <motion.circle
-                      cx={cx}
-                      cy={cy}
-                      r={hover ? 12 : 8}
-                      fill="none"
-                      stroke={escola.cor}
-                      strokeWidth="1"
-                      animate={{ opacity: [0.28, 0.6, 0.28] }}
-                      transition={{
-                        duration: 2.6,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: idx * 0.65,
-                      }}
-                      style={{ transition: "r 0.3s" }}
-                    />
-                    <circle
-                      cx={cx}
-                      cy={cy}
-                      r={hover ? 5 : 3.5}
-                      fill={escola.cor}
-                      stroke="#0a0f14"
-                      strokeWidth="0.8"
-                      style={{ transition: "r 0.2s" }}
-                    />
-                    <text
-                      x={cx}
-                      y={cy - 14}
-                      textAnchor="middle"
-                      fontSize={hover ? "13" : "11"}
-                      style={{
-                        userSelect: "none",
-                        transition: "font-size 0.2s",
-                      }}
-                    >
-                      {escola.icone}
-                    </text>
-                    {hover && (
-                      <g>
-                        <rect
-                          x={cx - 62}
-                          y={cy + 8}
-                          width={124}
-                          height={20}
-                          rx={3}
-                          fill="rgba(8,12,16,0.92)"
-                          stroke={escola.cor}
-                          strokeWidth="0.7"
-                        />
-                        <text
-                          x={cx}
-                          y={cy + 21}
-                          textAnchor="middle"
-                          fill={escola.cor}
-                          fontSize="8.5"
-                          fontFamily="'Palatino Linotype', serif"
-                          fontWeight="bold"
-                          letterSpacing="0.7"
-                          style={{ userSelect: "none" }}
-                        >
-                          {escola.nome}
-                        </text>
-                      </g>
-                    )}
-                  </g>
-                );
-              })}
-
             {/* Rosa dos ventos */}
             <g
               transform={`translate(${MAP_W - 44}, ${MAP_H - 44})`}
@@ -635,17 +499,8 @@ function ViewInicio({
             </g>
           </svg>
 
-          <div
-            style={{
-              ...s.mapaLabel,
-              color: escolaHover
-                ? ESCOLAS.find((e) => e.id === escolaHover)?.cor
-                : "transparent",
-            }}
-          >
-            {escolaHover
-              ? ESCOLAS.find((e) => e.id === escolaHover)?.nome
-              : "·"}
+          <div style={{ ...s.mapaLabel, color: "#5cc3ff" }}>
+            Serra da Cangalha · onde o meteoro caiu
           </div>
         </div>
 
